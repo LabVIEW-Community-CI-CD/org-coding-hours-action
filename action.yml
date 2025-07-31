@@ -19,6 +19,11 @@ inputs:
     description: Branch to which the generated KPI site will be committed (for GitHub Pages).
     default: gh-pages
     required: false
+outputs:
+  aggregated_report:
+    description: Path to the aggregated JSON report file
+    value: ${{ steps.compute.outputs.aggregated_report }}
+
 
 runs:
   using: "composite"
@@ -49,6 +54,7 @@ runs:
     # Run the org coding hours script which clones each repository, runs git-hours, aggregates results,
     # and writes per‑repository and aggregated JSON files into a reports/ directory.
     - name: Compute org coding hours
+      id: compute
       run: |
         python3 "${{ github.action_path }}/scripts/org_coding_hours.py"
       env:
