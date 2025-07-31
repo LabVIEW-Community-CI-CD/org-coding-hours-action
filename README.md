@@ -53,3 +53,7 @@ This workflow triggers manually through the GitHub UI. When run, it computes cod
 
 * The action installs a specific version of `git‑hours` (v0.1.2) using Go 1.24 and executes a Python helper script. If you want to update the version, modify the clone command in `action.yml` accordingly.
 * Both branches (`metrics_branch` and `pages_branch`) are created automatically if they do not exist. Subsequent runs will update the existing branches without force‑pushing unless a non‑fast‑forward update is required.
+
+## Development and Release
+
+A workflow at `.github/workflows/release.yml` compiles the Python helper scripts on each push and pull request. When a GitHub release is created, the same workflow uploads the action files as assets so they can be downloaded with the release.
