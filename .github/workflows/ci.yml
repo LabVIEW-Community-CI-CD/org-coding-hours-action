@@ -17,5 +17,5 @@ jobs:
       - name: Verify Python syntax
         run: python -m py_compile scripts/*.py
       - name: actionlint
-        uses: rhysd/actionlint@v1
+        uses: rhysd/actionlint@v1.7.7
 
