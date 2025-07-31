@@ -74,8 +74,16 @@ def main():
     for repo, data in results.items():
         name = repo.replace('/', '_')
         (reports / f"git-hours-{name}-{date}.json").write_text(json.dumps(data, indent=2))
-    # Write aggregated report.
-    (reports / f"git-hours-aggregated-{date}.json").write_text(json.dumps(agg, indent=2))
+    # Write aggregated report and capture the path.
+    agg_path = reports / f"git-hours-aggregated-{date}.json"
+    agg_path.write_text(json.dumps(agg, indent=2))
+
+    # If running inside a GitHub Action, expose the path via the output file.
+    github_output = os.getenv("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a") as fh:
+            print(f"aggregated_report={agg_path}", file=fh)
+
     # Output aggregated JSON to console for reference.
     print(json.dumps(agg, indent=2))
 
