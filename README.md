@@ -49,6 +49,22 @@ jobs:
 
 This workflow triggers manually through the GitHub UI. When run, it computes coding hours across the specified repositories, writes JSON reports to the `metrics` branch, and publishes the KPI website to the `gh-pages` branch.
 
+### Using in other repositories
+
+To run the action from another repository, reference it by its owner, repository name, and a tag:
+
+```yaml
+- name: Run Org Coding Hours Action
+  uses: other-org/org-coding-hours-action@v1
+  with:
+    repos: owner1/repo1 owner2/repo2
+```
+
+Replace `other-org` with the organization that hosts this action.
+## Continuous Integration
+
+The repository includes a workflow at `.github/workflows/ci.yml` that compiles the Python helper scripts and runs [actionlint](https://github.com/rhysd/actionlint) on every push and pull request.
+
 ## Notes
 
 * The action installs a specific version of `git‑hours` (v0.1.2) using Go 1.24 and executes a Python helper script. If you want to update the version, modify the clone command in `action.yml` accordingly.
@@ -57,3 +73,4 @@ This workflow triggers manually through the GitHub UI. When run, it computes cod
 ## Development and Release
 
 A workflow at `.github/workflows/release.yml` compiles the Python helper scripts on each push and pull request. When a GitHub release is created, the same workflow uploads the action files as assets so they can be downloaded with the release.
+The CI workflow at `.github/workflows/ci.yml` runs the same checks on every push and pull request.
