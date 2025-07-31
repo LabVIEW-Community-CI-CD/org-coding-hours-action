@@ -19,6 +19,10 @@ inputs:
     description: Branch to which the generated KPI site will be committed (for GitHub Pages).
     default: gh-pages
     required: false
+  git_hours_version:
+    description: git-hours release tag to install
+    default: v0.1.2
+    required: false
 outputs:
   aggregated_report:
     description: Path to the aggregated JSON report file
@@ -33,15 +37,28 @@ runs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    # Install Go for git-hours. Always use version 1.24 to match the git-hours v0.1.2 requirement.
+    # Install Go for git-hours. Always use version 1.24 to match the git-hours requirement.
     - name: Setup Go
       uses: actions/setup-go@v4
       with:
         go-version: '1.24'
-    # Install the specific git-hours release (v0.1.2) by cloning and go installing it.
-    - name: Install git-hours v0.1.2
+    # Determine GOPATH so we can cache the git-hours binary.
+    - name: Get GOPATH
+      id: go-env
+      run: echo "gopath=$(go env GOPATH)" >> "$GITHUB_OUTPUT"
+      shell: bash
+    # Cache the git-hours binary based on version and OS.
+    - name: Cache git-hours
+      id: cache-git-hours
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.go-env.outputs.gopath }}/bin/git-hours
+        key: git-hours-${{ inputs.git_hours_version }}-${{ runner.os }}
+    # Install git-hours if not restored from cache.
+    - name: Install git-hours
+      if: steps.cache-git-hours.outputs.cache-hit != 'true'
       run: |
-        git clone --depth 1 --branch v0.1.2 https://github.com/trinhminhtriet/git-hours.git git-hours-src
+        git clone --depth 1 --branch ${{ inputs.git_hours_version }} https://github.com/trinhminhtriet/git-hours.git git-hours-src
         # The module declares Go 1.24.1; adjust it to 1.24 for compatibility.
         sed -i 's/go 1.24.1/go 1.24/' git-hours-src/go.mod
         (cd git-hours-src && go install .)
