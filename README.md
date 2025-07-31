@@ -10,6 +10,7 @@ This composite GitHub Action calculates coding hours across one or more reposito
 | `window_start` | No | – | Optional start date (`YYYY‑MM‑DD`) passed to `git‑hours -since` to limit the reporting window. |
 | `metrics_branch` | No | `metrics` | The branch where the JSON reports are committed. |
 | `pages_branch` | No | `gh-pages` | The branch where the generated KPI website is committed (enables GitHub Pages). |
+| `git_hours_version` | No | `v0.1.2` | git-hours release tag to install and cache. |
 
 ## Outputs
 
@@ -55,7 +56,7 @@ This workflow triggers manually through the GitHub UI. When run, it computes cod
 
 ## Notes
 
-* The action installs a specific version of `git‑hours` (v0.1.2) using Go 1.24 and executes a Python helper script. If you want to update the version, modify the clone command in `action.yml` accordingly.
+* The action installs a specific version of `git‑hours` (controlled by the `git_hours_version` input) using Go 1.24 and executes a Python helper script.
 * Both branches (`metrics_branch` and `pages_branch`) are created automatically if they do not exist. Subsequent runs will update the existing branches without force‑pushing unless a non‑fast‑forward update is required.
 
 ## Development and Release
