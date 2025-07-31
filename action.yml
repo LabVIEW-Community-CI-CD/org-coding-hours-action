@@ -40,7 +40,8 @@ runs:
         # The module declares Go 1.24.1; adjust it to 1.24 for compatibility.
         sed -i 's/go 1.24.1/go 1.24/' git-hours-src/go.mod
         (cd git-hours-src && go install .)
-      shell: bash
+        shell: bash
+
     # Setup Python for running our helper scripts. The default Python version available on the runner is sufficient.
     - name: Setup Python
       uses: actions/setup-python@v4
