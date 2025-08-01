@@ -14,6 +14,7 @@ import pathlib
 import html
 import textwrap
 import shutil
+from string import Template
 
 def find_latest_aggregated(reports_dir: pathlib.Path) -> pathlib.Path:
     """Return the most recently modified aggregated report file."""
@@ -37,23 +38,23 @@ def build_site(agg_path: pathlib.Path):
     # Current UTC timestamp.
     updated = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
     # Compose the page HTML. Use Simple.css and Chart.js via CDN for styling and charts.
-    page = f"""
+    template = Template(textwrap.dedent("""
     <!doctype html><html lang='en'><head>
       <meta charset='utf-8'>
       <title>Organization Coding Hours</title>
       <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/simpledotcss/simple.min.css'>
       <script src='https://cdn.jsdelivr.net/npm/sortable-tablesort/sortable.min.js' defer></script>
       <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
-      <style>canvas{{max-height:400px}}</style>
+      <style>canvas{max-height:400px}</style>
     </head><body><main>
       <h1>Organization Coding Hours</h1>
-      <p><em>Last updated {updated}</em></p>
+      <p><em>Last updated $updated</em></p>
 
       <h2>Totals</h2>
       <ul>
-        <li><strong>Hours</strong>: {total['hours']}</li>
-        <li><strong>Commits</strong>: {total['commits']}</li>
-        <li><strong>Contributors</strong>: {len(data) - 1}</li>
+        <li><strong>Hours</strong>: $hours</li>
+        <li><strong>Commits</strong>: $commits</li>
+        <li><strong>Contributors</strong>: $contributors</li>
       </ul>
 
       <h2>Hours per contributor</h2>
@@ -62,7 +63,7 @@ def build_site(agg_path: pathlib.Path):
       <h2>Detail table</h2>
       <table class='sortable'>
         <thead><tr><th>Contributor</th><th>Hours</th><th>Commits</th></tr></thead>
-        <tbody>{rows}</tbody>
+        <tbody>$rows</tbody>
       </table>
 
       <p>Historical JSON snapshots live in <code>/data</code>.</p>
@@ -70,22 +71,29 @@ def build_site(agg_path: pathlib.Path):
       <script>
         fetch('git-hours-latest.json')
           .then(r => r.json())
-          .then(d => {{
+          .then(d => {
             const labels = Object.keys(d).filter(k => k !== 'total');
             const hours  = labels.map(l => d[l].hours);
-            new Chart(document.getElementById('hoursChart'), {{
+            new Chart(document.getElementById('hoursChart'), {
               type: 'bar',
-              data: {{ labels, datasets:[{{label:'Hours',data:hours}}] }},
-              options: {{
+              data: { labels, datasets:[{label:'Hours',data:hours}] },
+              options: {
                 responsive:true, maintainAspectRatio:false,
-                plugins:{{legend:{{display:false}}}},
-                scales:{{y:{{beginAtZero:true}}}}
-              }}
-            }});
-          }});
+                plugins:{legend:{display:false}},
+                scales:{y:{beginAtZero:true}}
+              }
+            });
+          });
       </script>
     </main></body></html>
-    """
+    """))
+    page = template.substitute(
+        updated=updated,
+        hours=total['hours'],
+        commits=total['commits'],
+        contributors=len(data) - 1,
+        rows=rows,
+    )
     # Prepare the site directory structure.
     site_dir = pathlib.Path("site")
     data_dir = site_dir / "data"
