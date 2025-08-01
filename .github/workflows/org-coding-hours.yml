@@ -25,6 +25,8 @@ permissions:
 
 env:
   GO_VERSION: '1.24'
+  METRICS_BRANCH: metrics
+  PAGES_BRANCH: gh-pages
   REPORTS_DIR: collected-reports
   SITE_DIR: site
 
@@ -75,6 +77,14 @@ jobs:
         with:
           repos: ${{ matrix.repo }}
           window_start: ${{ github.event.inputs.window_start }}
+          metrics_branch: ${{ env.METRICS_BRANCH }}
+          pages_branch: ${{ env.PAGES_BRANCH }}
+
+      - name: Restore reports directory
+        shell: bash
+        run: |
+          git fetch --quiet origin "$METRICS_BRANCH" || exit 0
+          git switch --quiet "$METRICS_BRANCH"
 
       - name: Collect JSON reports
         shell: bash
