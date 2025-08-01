@@ -6,6 +6,7 @@ This composite GitHub Action calculates coding hours across one or more reposito
 
 * Go **1.24** must be installed and available on the `PATH`.
 * Python **3.x** is required for the helper scripts and tests.
+When this action runs in a workflow, it installs Go and Python automatically. These prerequisites are only required when developing or testing locally.
 
 
 ## Inputs
@@ -28,8 +29,7 @@ In addition to this output, the action writes per-repository and aggregated JSON
 
 ## Example workflow
 
-To invoke this action from a workflow, ensure that your workflow has write permissions to contents and that your repository settings enable publishing from the specified `pages_branch` (typically `gh-pages`).
-
+**Important:** Set `permissions: contents: write` in your workflow so the action can push metrics and the KPI website. Ensure GitHub Pages is enabled for the `pages_branch`.
 ```yaml
 name: Org Coding Hours Report
 
@@ -62,16 +62,16 @@ This workflow triggers manually through the GitHub UI. When run, it computes cod
 
 ### Using in other repositories
 
-To run the action from another repository, reference it by its owner, repository name, and a tag:
+To run the action from another repository, reference it by `OWNER/REPO` and a tag or commit:
 
 ```yaml
 - name: Run Org Coding Hours Action
-  uses: other-org/org-coding-hours-action@v1
+  uses: labview-community-ci-ci/org-coding-hours-action@v1
   with:
     repos: owner1/repo1 owner2/repo2
 ```
 
-Replace `other-org` with the organization that hosts this action.
+Replace `labview-community-ci-ci` with the organization that hosts this action. The action file lives at the repository root. Pinning to a release tag (e.g., `@v1`) or commit is recommended over `@latest` for reproducible results.
 ## Continuous Integration
 
 The workflow at `.github/workflows/ci.yml` verifies the Python helper scripts and runs [actionlint](https://github.com/rhysd/actionlint) on every push and pull request. The `.github/workflows/release.yml` workflow performs the same checks and runs the unit tests. When a GitHub release is created it uploads the action files as release assets.
