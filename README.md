@@ -1,137 +1,126 @@
-# Org Coding Hours Action 🕒
+# Org Coding Hours Action 🕒  `v6`
 
 Generate **per‑contributor coding‑hour metrics** for one or many repositories, then (optionally) publish
 those JSON reports and a static KPI dashboard to GitHub Pages.
 
-|              |                             |
-|--------------|-----------------------------|
-| **Latest tag** | `v5` |
-| **Marketplace** | _Coming soon_ |
+|    |  |
+|----|--|
+| **Latest tag** | `v6` |
+| **Marketplace** | *Coming soon* |
 | **License** | MIT |
 
 ---
 
 ## 1 ‑ Why would I use this?
 
-* **Quick KPI snapshots** – track volunteer or contractor effort across all repos in your org.
-* **Works on public *and* private repos** – only GitHub’s REST API is used.
-* **Zero runtime deps** – the action bundles the [`git-hours`](https://github.com/kimmobrunfeldt/git-hours) binary; no npm/pip install step required.  
-* **Straight‑to‑Pages workflow** – add two optional inputs and the action will commit reports
-  to a branch (`metrics_branch`) *and* push a pre‑built static site to another branch
-  (`pages_branch`), removing the need for a custom “build‑site” job.
+* **Quick KPI snapshots** – track volunteer or contractor effort across all repos in your org.  
+* **Works on public *and* private repos** – only GitHub’s REST API is used.  
+* **Zero runtime deps** – the action bundles [`git‑hours`](https://github.com/kimmobrunfeldt/git-hours); no npm/pip install.  
+* **Straight‑to‑Pages workflow** – set two optional inputs and *build‑site/deploy* jobs disappear.  
 
 ---
 
-## 2 ‑ Quick‑start workflow
+## 2 ‑ Usage at a glance
+
+| Scenario | Minimum inputs | Extra jobs needed |
+|----------|----------------|-------------------|
+| **Just want JSON**<br>(you’ll process it yourself) | `repos` | *none* |
+| **Want JSON + dashboard**<br>but keep logic in the *workflow* | `repos` | **build‑site**<br>optional **deploy‑pages** |
+| **Auto‑publish JSON + dashboard** | `repos`, `metrics_branch`, `pages_branch` | *none* – the action pushes both branches |
+
+---
+
+## 3 ‑ Quick‑start workflows
+
+### 3.1  Single‑job (only JSON)
 
 ```yaml
-name: Org Coding Hours
-on:
-  workflow_dispatch:        # manual trigger
-    inputs:
-      window_start:
-        description: 'Only include commits after YYYY‑MM‑DD'
-        required: false
-
-permissions:
-  contents: write            # needed for Pages publishing (optional)
-  id-token:  write           # needed only for OIDC auth to Pages
-  pages:     write
-
 jobs:
   report:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Run Org Coding Hours
-        uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v5
+      - uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v6
         with:
-          repos: |
-            LabVIEW-Community-CI-CD/labview-icon-editor
-            LabVIEW-Community-CI-CD/awesome-plugin
-          window_start: ${{ github.event.inputs.window_start }}
-          # metrics_branch: metrics        # optional
-          # pages_branch:   gh-pages       # optional
-          # git_hours_version: v1.3.0      # optional
-
-      # Grab everything the action put in ./reports
-      - uses: actions/upload-artifact@v4
+          repos: my-org/*
+      - uses: actions/upload-artifact@v4   # upload **everything** in reports/
         with:
           name: git-hours-json
-          path: reports/
+          path: reports/                   # <‑‑ NOT a wildcard
 ```
 
-> **Common pitfall**: the upload step must target `reports/**`, not  
-> `reports/git-hours-*.json`. The action also drops *per‑repo* files whose names
-> do **not** match the wildcard you used, so the artifact may appear missing.  
-> Use `ls -R reports` in a debug step if in doubt.
+### 3.2  Two‑job (JSON → site)
+
+```yaml
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    outputs:
+      have_reports: ${{ steps.check.outputs.ok }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v6
+        with:
+          repos: |
+            my-org/project‑A
+            my-org/project‑B
+      - name: Sanity‑check reports/
+        id: check
+        run: test -d reports && echo "ok=true" >>"$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.ok == 'true'
+        with:
+          name: git-hours-json       # <‑‑ MUST match download step
+          path: reports/
+
+  build-site:
+    needs: report
+    if: needs.report.outputs.have_reports == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: git-hours-json       # <‑‑ SAME artifact name
+          path: tmp
+      # … your existing site‑generation script …
+```
+
+*Why the guard?* If `reports/` is missing (e.g. a repo list typo produced no data), the upload step is skipped, so the
+download step would otherwise fail with *“Artifact not found”*.
 
 ---
 
-## 3 ‑ Inputs
+## 4 ‑ Inputs
 
-| Input&nbsp;name | Required | Default | Notes |
-|-----------------|----------|---------|-------|
-| `repos` | ✅ | — | Newline‑separated list of `owner/repo` pairs (max 100). |
-| `window_start` | ❌ | *30 days ago* | ISO date (`YYYY‑MM‑DD`). Leave blank for rolling window. |
-| `metrics_branch` | ❌ | *(none)* | If set, the action commits JSON snapshots to this branch. |
-| `pages_branch` | ❌ | *(none)* | If set *and* `metrics_branch` is set, a static HTML dashboard is also pushed here. |
-| `git_hours_version` | ❌ | `latest` | Pin the bundled `git-hours` binary. Useful if upstream behaviour changes. |
+| Name | Required | Default | Notes |
+|------|----------|---------|-------|
+| `repos` | ✅ | — | Newline *or* space separated list (`owner/repo`). Wildcards allowed: `my‑org/*`. |
+| `window_start` | ❌ | *30 days ago* | ISO date `YYYY‑MM‑DD`. |
+| `metrics_branch` | ❌ | *(none)* | Commit JSON snapshots here. |
+| `pages_branch` | ❌ | *(none)* | If set *and* `metrics_branch` set, a static dashboard is pushed here. |
+| `git_hours_version` | ❌ | `latest` | Pin the bundled `git‑hours` binary. |
+
+See the full schema in [`action.yml`](action.yml).
 
 ---
 
-## 4 ‑ Outputs & file layout
+## 5 ‑ Outputs & file layout
 
 ```
 reports/
-├─ git-hours-aggregated-2025-08-01.json   # all repos combined
-├─ git-hours-<repo1>-2025-08-01.json      # per‑repo detail
-├─ …                                      # one per listed repo
+├─ git-hours-aggregated-YYYY‑MM‑DD.json   # all repos
+├─ git-hours-<repo>-YYYY‑MM‑DD.json       # one per repo
 ```
 
-*JSON schema (excerpt)*
-
-```jsonc
-{
-  "alice":   { "hours": 12.5, "commits": 8 },
-  "bob":     { "hours":  7.0, "commits": 5 },
-  "total":   { "hours": 19.5, "commits": 13 }
-}
-```
-
-If you enable `pages_branch`, the action also writes:
+If `pages_branch` is enabled:
 
 ```
 site/
-├─ index.html                  # KPI dashboard (Chart.js + sortable tables)
-├─ git-hours-latest.json       # same as aggregated‑<date>.json
-└─ data/                       # historical snapshots
+├─ index.html
+├─ git-hours-latest.json
+└─ data/          # historical snapshots
 ```
-
----
-
-## 5 ‑ Recipes
-
-### 5.1 Publish dashboards automatically
-
-```yaml
-with:
-  repos: my-org/*
-  metrics_branch: metrics
-  pages_branch:   gh-pages
-```
-
-The action:
-
-1. Commits **only JSON** to `metrics` (keeps history thin).  
-2. Builds the static site and force‑pushes the *rendered* artefacts to `gh-pages`.  
-3. Emits a deployment URL in the job summary.
-
-### 5.2 Ad‑hoc date windows
-
-Trigger manually and set **window_start = 2024‑01‑01** to regenerate last year’s
-numbers without touching the rolling dashboard.
 
 ---
 
@@ -139,33 +128,38 @@ numbers without touching the rolling dashboard.
 
 | Symptom | Likely cause & fix |
 |---------|-------------------|
-| **“No files were found with the provided path…​”** during `upload-artifact` | Path mismatch (see *Outputs* section). List directory with `run: ls -R` to confirm. |
-| Reports are empty (0 hours) | 1) `window_start` too recent, 2) repo list typo, or 3) token lacks access to private repos. |
-| Action fails with 403 | Running on a *fork* of a private repo: grant `read` on actions and contents, or use a PAT. |
-| Need more than 100 repos | Split the list and run the action twice; aggregate the two JSON files later. |
+| **“Artifact not found”** when another job downloads | 1) Upload step used a *different* `name:` than the download step.<br>2) `reports/` was empty or never created – verify with `run: ls -R`.<br>3) Artifact expired (default 90 days) – raise `retention-days`. |
+| `reports/` directory missing | Action failed earlier – check logs for Go/Python install errors. |
+| Empty JSON (0 hours) | `window_start` too recent, repo typo, or token lacks access to private repos. |
+| Action fails with 403 on a fork | Grant `read` on *actions* and *contents* or use a PAT. |
+
+*(Tip: add the “Sanity‑check reports/” step shown above; it prevents downstream jobs from failing if no data is produced.)*
 
 ---
 
-## 7 ‑ Change‑log (v5 vs v4)
+## 7 ‑ Change‑log (v6 vs v5)
 
-* **Docs overhaul.** (You’re reading it! 🥳)
-* Added **optional** `metrics_branch`, `pages_branch`, `git_hours_version`.
-* Minor dependency bumps; *no* breaking input or output changes.
+* **Docs:** Added two‑job workflow & artifact guard to prevent *“artifact not found”* pitfalls.  
+* **Defaults:** `git_hours_version` bumped to v1.3.0.  
+* **Internal:** Minor performance tweaks; no breaking input changes.
+
+Older release notes remain [here](CHANGELOG.md).
 
 ---
 
 ## 8 ‑ Contributing & Support
 
-Issues and PRs are welcome.  
-Please include:
+Please open an issue with:
 
-* **Exact GitHub Actions log** snippet  
-* Your **workflow YAML** (trim secrets)  
-* Output of `ls -R reports` if the upload step fails
+* Exact **Actions log** snippet  
+* Your **workflow YAML** (redact secrets)  
+* Output of `ls -R reports` if upload fails
+
+PRs welcome!
 
 ---
 
 ### References
 
-* GitHub Actions workflow syntax – <https://docs.github.com/actions>
-* `actions/upload-artifact` wildcard behaviour – <https://github.com/actions/upload-artifact#uploading-disregarding-no-files-found>
+* GitHub Actions workflow syntax –  
+* `actions/upload-artifact` wildcard behaviour –  
