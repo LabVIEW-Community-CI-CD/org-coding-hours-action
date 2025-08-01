@@ -8,6 +8,9 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 from org_coding_hours import aggregate
 from build_site import build_site
 
+import importlib
+import datetime
+
 
 def test_aggregate_basic():
     res1 = {
@@ -46,4 +49,38 @@ def test_build_site(tmp_path, monkeypatch):
     assert json.load(latest.open()) == data
     copied = site / "data" / agg_path.name
     assert copied.exists()
+
+
+def _run_main(monkeypatch, tmp_path, repos):
+    """Helper to run org_coding_hours.main with patched environment."""
+    monkeypatch.setenv("REPOS", " ".join(repos))
+    output_file = tmp_path / "out.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    monkeypatch.chdir(tmp_path)
+
+    import org_coding_hours as oc
+    oc = importlib.reload(oc)
+    monkeypatch.setattr(oc, "run_git_hours", lambda repo: {"total": {"hours": 1, "commits": 1}})
+
+    class FixedDate(datetime.date):
+        @classmethod
+        def today(cls):
+            return cls(2024, 1, 1)
+
+    monkeypatch.setattr(oc.datetime, "date", FixedDate)
+
+    oc.main()
+    return output_file.read_text().strip()
+
+
+def test_output_path_single_repo(tmp_path, monkeypatch):
+    line = _run_main(monkeypatch, tmp_path, ["owner/repo"])
+    expected = "reports/git-hours-owner_repo-2024-01-01.json"
+    assert line == f"aggregated_report={expected}"
+
+
+def test_output_path_multiple_repos(tmp_path, monkeypatch):
+    line = _run_main(monkeypatch, tmp_path, ["foo/bar", "baz/qux"])
+    expected = "reports/git-hours-aggregated-2024-01-01.json"
+    assert line == f"aggregated_report={expected}"
 
