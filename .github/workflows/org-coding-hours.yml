@@ -201,10 +201,10 @@ jobs:
           const labels = Object.keys(d).filter(k=>k!=='total');
           const H = labels.map(l=>d[l].hours);
           const C = labels.map(l=>d[l].commits);
-          new Chart(hoursChart,{type:'bar',data:{labels,datasets:[{label:'Hours',data:H}]},
-           options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
-          new Chart(commitsChart,{type:'bar',data:{labels,datasets:[{label:'Commits',data:C}]},
-           options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+          new Chart(hoursChart,{{type:'bar',data:{{labels,datasets:[{{label:'Hours',data:H}}] }},
+           options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:{{y:{{beginAtZero:true}}}}}}});
+          new Chart(commitsChart,{{type:'bar',data:{{labels,datasets:[{{label:'Commits',data:C}}] }},
+           options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:{{y:{{beginAtZero:true}}}}}}});
           </script></main></body></html>
           """
           pathlib.Path(f"{site_dir}/index.html").write_text(textwrap.dedent(page))
