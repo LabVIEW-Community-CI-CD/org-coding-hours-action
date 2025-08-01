@@ -1,0 +1,17 @@
+{
+  "sergio.velderrain@emerson.com": {
+    "name": "sergio.velderrain@emerson.com",
+    "hours": 0,
+    "commits": 1
+  },
+  "sergio.velderrain@ni.com": {
+    "name": "sergio.velderrain@ni.com",
+    "hours": 13,
+    "commits": 28
+  },
+  "total": {
+    "name": "",
+    "hours": 13,
+    "commits": 29
+  }
+}
