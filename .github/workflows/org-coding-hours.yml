@@ -141,7 +141,7 @@ jobs:
           # Collate per‑repo JSON into a single organisation‑wide aggregate
           # ------------------------------------------------------------------
           org = collections.defaultdict(lambda: {'hours': 0, 'commits': 0})
-          for src in glob.glob("tmp/*.json"):
+          for src in glob.glob("tmp/**/*.json", recursive=True):
               dest = f"{site_dir}/data/{pathlib.Path(src).name}"
               os.system(f"cp {src} {dest}")  # retain raw files
               data = json.load(open(src))
