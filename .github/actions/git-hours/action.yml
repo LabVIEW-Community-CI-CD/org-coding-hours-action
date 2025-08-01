@@ -1,0 +1,47 @@
+name: "git-hours"
+description: "Run git-hours on a repository and emit git-hours.json"
+inputs:
+  repo_path:
+    description: Path to the repository to analyse
+    default: '.'
+    required: false
+  git_hours_version:
+    description: git-hours release tag to install
+    default: v0.1.2
+    required: false
+outputs:
+  results:
+    description: Path to generated git-hours.json
+    value: ${{ steps.run.outputs.report }}
+runs:
+  using: composite
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+    - name: Get GOPATH
+      id: go-env
+      run: echo "gopath=$(go env GOPATH)" >> "$GITHUB_OUTPUT"
+      shell: bash
+    - name: Cache git-hours
+      id: cache
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.go-env.outputs.gopath }}/bin/git-hours
+        key: git-hours-${{ inputs.git_hours_version }}-${{ runner.os }}
+    - name: Install git-hours
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        git clone --depth 1 --branch ${{ inputs.git_hours_version }} https://github.com/trinhminhtriet/git-hours.git gh-src
+        sed -i 's/go 1.24.1/go 1.24/' gh-src/go.mod
+        (cd gh-src && go install .)
+      shell: bash
+    - name: Run git-hours
+      id: run
+      run: |
+        cd "${{ inputs.repo_path }}"
+        git-hours > git-hours.json
+        echo "report=${{ inputs.repo_path }}/git-hours.json" >> "$GITHUB_OUTPUT"
+      shell: bash
+
