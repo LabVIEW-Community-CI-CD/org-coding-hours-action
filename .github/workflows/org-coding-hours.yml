@@ -88,11 +88,15 @@ jobs:
           fi
           cp "${reports[@]}" "${REPORTS_DIR}/"
 
+      - id: sanitize
+        run: echo "repo=${REPO//\//-}" >>"$GITHUB_OUTPUT"
+        env:
+          REPO: ${{ matrix.repo }}
+
       - name: Upload reports
         uses: actions/upload-artifact@v4
         with:
-          # Replace “/” so the name is a valid artifact identifier
-          name: git-hours-json-${{ replace(matrix.repo,'/','-') }}  # :contentReference[oaicite:1]{index=1}
+          name: git-hours-json-${{ steps.sanitize.outputs.repo }}
           path: ${{ env.REPORTS_DIR }}
           retention-days: 30
           if-no-files-found: error
@@ -116,8 +120,6 @@ jobs:
 
       - name: Build KPI microsite
         shell: bash
-        env:
-          DATE: ${{ github.run_started_at }}
         run: |
           set -euo pipefail
           python <<'PY'
