@@ -34,11 +34,17 @@ def run_git_hours(repo: str) -> dict:
     """Clone the given repository and run git-hours (optionally with -since)."""
     with tempfile.TemporaryDirectory() as temp:
         # Clone the repository. Fetch the full history so git-hours can analyze
-        # all commits.
-        subprocess.run(
-            ["git", "clone", f"https://github.com/{repo}.git", temp],
-            check=True,
-        )
+        # all commits. Use GITHUB_TOKEN for authentication if provided.
+        token = os.getenv("GITHUB_TOKEN")
+        url = f"https://github.com/{repo}.git"
+        if token:
+            url = f"https://x-access-token:{token}@github.com/{repo}.git"
+        subprocess.run([
+            "git",
+            "clone",
+            url,
+            temp,
+        ], check=True)
         cmd = ["git-hours"]
         if SINCE:
             cmd.extend(["-since", SINCE])

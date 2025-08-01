@@ -131,3 +131,35 @@ def test_main_multiple_repos(monkeypatch, tmp_path):
     expected = "reports/git-hours-aggregated-2024-01-01.json"
     assert line == f"aggregated_report={expected}"
 
+
+def test_clone_uses_token(monkeypatch, tmp_path):
+    monkeypatch.setenv("REPOS", "owner/private")
+    monkeypatch.setenv("GITHUB_TOKEN", "secret")
+    output_file = tmp_path / "out.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    monkeypatch.chdir(tmp_path)
+
+    import org_coding_hours as oc
+    oc = importlib.reload(oc)
+
+    seen = {}
+
+    def fake_run(cmd, check):
+        seen["url"] = cmd[2]
+
+    def fake_check_output(cmd, cwd, text):
+        return json.dumps({"total": {"hours": 1, "commits": 1}})
+
+    monkeypatch.setattr(oc.subprocess, "run", fake_run)
+    monkeypatch.setattr(oc.subprocess, "check_output", fake_check_output)
+
+    class FixedDate(datetime.date):
+        @classmethod
+        def today(cls):
+            return cls(2024, 1, 1)
+
+    monkeypatch.setattr(oc.datetime, "date", FixedDate)
+
+    oc.main()
+    assert "x-access-token" in seen["url"]
+
