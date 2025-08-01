@@ -2,6 +2,12 @@
 
 This composite GitHub Action calculates coding hours across one or more repositories, aggregates the per‑contributor statistics, generates JSON reports, builds a simple KPI website, and publishes both the metrics and the site to dedicated branches. The action encapsulates the logic from the `Org Coding Hours` workflow in the LabVIEW icon editor project.
 
+## Prerequisites
+
+* Go **1.24** must be installed and available on the `PATH`.
+* Python **3.x** is required for the helper scripts and tests.
+
+
 ## Inputs
 
 | Name | Required | Default | Description |
@@ -68,14 +74,24 @@ To run the action from another repository, reference it by its owner, repository
 Replace `other-org` with the organization that hosts this action.
 ## Continuous Integration
 
-The repository includes a workflow at `.github/workflows/ci.yml` that compiles the Python helper scripts and runs [actionlint](https://github.com/rhysd/actionlint) on every push and pull request.
+The workflow at `.github/workflows/ci.yml` verifies the Python helper scripts and runs [actionlint](https://github.com/rhysd/actionlint) on every push and pull request. The `.github/workflows/release.yml` workflow performs the same checks and runs the unit tests. When a GitHub release is created it uploads the action files as release assets.
 
 ## Notes
 
 * The action installs a specific version of `git‑hours` (controlled by the `git_hours_version` input) using Go 1.24 and executes a Python helper script.
 * Both branches (`metrics_branch` and `pages_branch`) are created automatically if they do not exist. Subsequent runs will update the existing branches without force‑pushing unless a non‑fast‑forward update is required.
 
-## Development and Release
+## Development
 
-A workflow at `.github/workflows/release.yml` compiles the Python helper scripts on each push and pull request. When a GitHub release is created, the same workflow uploads the action files as assets so they can be downloaded with the release.
-The CI workflow at `.github/workflows/ci.yml` runs the same checks on every push and pull request.
+Modify the Python helper scripts in `scripts/` as needed and run the unit tests locally:
+
+```bash
+pip install -r requirements-dev.txt  # or: pip install pytest
+pytest
+```
+
+Create a Git tag (`vX.Y.Z`) when you are ready to publish a new release. The release workflow will package the action files and upload them as assets.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
