@@ -14,7 +14,7 @@ those JSON reports and a static KPI dashboard to GitHub Pages.
 ## 1 ‑ Why would I use this?
 
 * **Quick KPI snapshots** – track volunteer or contractor effort across all repos in your org.  
-* **Works on public *and* private repos** – only GitHub’s REST API is used.  
+* **Works on public *and* private repos** – private repos require `GITHUB_TOKEN` (or a PAT) to authenticate clones. Only GitHub’s REST API is used.
 * **Zero runtime deps** – the action bundles [`git‑hours`](https://github.com/kimmobrunfeldt/git-hours); no npm/pip install.  
 * **Straight‑to‑Pages workflow** – set two optional inputs and *build‑site/deploy* jobs disappear.  
 
