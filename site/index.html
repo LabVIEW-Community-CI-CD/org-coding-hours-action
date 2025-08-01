@@ -1,0 +1,49 @@
+
+    <!doctype html><html lang='en'><head>
+      <meta charset='utf-8'>
+      <title>Organization Coding Hours</title>
+      <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/simpledotcss/simple.min.css'>
+      <script src='https://cdn.jsdelivr.net/npm/sortable-tablesort/sortable.min.js' defer></script>
+      <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+      <style>canvas{max-height:400px}</style>
+    </head><body><main>
+      <h1>Organization Coding Hours</h1>
+      <p><em>Last updated 2025-08-01 21:20 UTC</em></p>
+
+      <h2>Totals</h2>
+      <ul>
+        <li><strong>Hours</strong>: 13</li>
+        <li><strong>Commits</strong>: 29</li>
+        <li><strong>Contributors</strong>: 2</li>
+      </ul>
+
+      <h2>Hours per contributor</h2>
+      <canvas id='hoursChart'></canvas>
+
+      <h2>Detail table</h2>
+      <table class='sortable'>
+        <thead><tr><th>Contributor</th><th>Hours</th><th>Commits</th></tr></thead>
+        <tbody><tr><td>sergio.velderrain@emerson.com</td><td>0</td><td>1</td></tr>
+<tr><td>sergio.velderrain@ni.com</td><td>13</td><td>28</td></tr></tbody>
+      </table>
+
+      <p>Historical JSON snapshots live in <code>/data</code>.</p>
+
+      <script>
+        fetch('git-hours-latest.json')
+          .then(r => r.json())
+          .then(d => {
+            const labels = Object.keys(d).filter(k => k !== 'total');
+            const hours  = labels.map(l => d[l].hours);
+            new Chart(document.getElementById('hoursChart'), {
+              type: 'bar',
+              data: { labels, datasets:[{label:'Hours',data:hours}] },
+              options: {
+                responsive:true, maintainAspectRatio:false,
+                plugins:{legend:{display:false}},
+                scales:{y:{beginAtZero:true}}
+              }
+            });
+          });
+      </script>
+    </main></body></html>
