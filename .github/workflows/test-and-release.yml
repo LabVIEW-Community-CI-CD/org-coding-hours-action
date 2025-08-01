@@ -15,13 +15,16 @@ jobs:
         uses: ./.github/actions/git-hours
         with: { repo_path: '.' }
       - uses: actions/upload-artifact@v4
+        with:
+          name: git-hours
+          path: ${{ steps.hours.outputs.results }}
 
   build-kpi-microsite:
     runs-on: ubuntu-latest
     needs: test-git-hours
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v3
+      - uses: actions/setup-node@v4
         with: { node-version: '18' }
       - run: npm ci --prefix kpi-microsite
       - run: |
@@ -33,14 +36,15 @@ jobs:
         with: { name: kpi-microsite, path: kpi-microsite/dist }
 
   release:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    needs: [test-git-hours, build-kpi-microsite]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/create-release@v1
-        env: { GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
-        with:
-          tag_name: v${{ github.run_number }}
-          release_name: v${{ github.run_number }}
+      if: github.event_name == 'workflow_dispatch'
+      runs-on: ubuntu-latest
+      needs: [test-git-hours, build-kpi-microsite]
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/create-release@v1
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          with:
+            tag_name: v${{ github.run_number }}
+            release_name: v${{ github.run_number }}
 
