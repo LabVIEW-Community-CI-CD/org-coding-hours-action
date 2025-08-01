@@ -1,0 +1,37 @@
+name: "git-hours"
+description: >
+  Run the git-hours CLI against a local repository and output a JSON report.
+
+inputs:
+  repo_path:
+    description: Path to the repository to analyse
+    default: '.'
+    required: false
+  git_hours_version:
+    description: git-hours release tag to install
+    default: v0.1.2
+    required: false
+
+outputs:
+  results:
+    description: Path to the generated git-hours JSON report
+    value: ${{ steps.run.outputs.path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+    - name: Install git-hours
+      run: |
+        go install github.com/trinhminhtriet/git-hours@${{ inputs.git_hours_version }}
+      shell: bash
+    - name: Run git-hours
+      id: run
+      run: |
+        cd "${{ inputs.repo_path }}"
+        git-hours > "$RUNNER_TEMP/git-hours.json"
+        echo "path=$RUNNER_TEMP/git-hours.json" >>"$GITHUB_OUTPUT"
+      shell: bash
