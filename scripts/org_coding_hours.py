@@ -75,15 +75,24 @@ def main():
     for repo, data in results.items():
         name = repo.replace('/', '_')
         (reports / f"git-hours-{name}-{date}.json").write_text(json.dumps(data, indent=2))
-    # Write aggregated report and capture the path.
+    # Write aggregated report.
     agg_path = reports / f"git-hours-aggregated-{date}.json"
     agg_path.write_text(json.dumps(agg, indent=2))
+
+    # Choose which path to expose as the aggregated_report output. When only
+    # a single repository is processed, point at that repo's report so callers
+    # don't need to handle aggregation separately.
+    if len(REPOS) == 1:
+        repo_name = REPOS[0].replace('/', '_')
+        output_path = reports / f"git-hours-{repo_name}-{date}.json"
+    else:
+        output_path = agg_path
 
     # If running inside a GitHub Action, expose the path via the output file.
     github_output = os.getenv("GITHUB_OUTPUT")
     if github_output:
         with open(github_output, "a") as fh:
-            print(f"aggregated_report={agg_path}", file=fh)
+            print(f"aggregated_report={output_path}", file=fh)
 
     # Output aggregated JSON to console for reference.
     print(json.dumps(agg, indent=2))
