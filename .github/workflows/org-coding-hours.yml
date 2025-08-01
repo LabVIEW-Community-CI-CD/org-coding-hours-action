@@ -121,82 +121,82 @@ jobs:
         run: |
           set -euo pipefail
           python <<'PY'
-import glob, json, collections, html, textwrap, datetime as dt, pathlib, os
-site_dir = os.environ['SITE_DIR']
-pathlib.Path(f"{site_dir}/data").mkdir(parents=True, exist_ok=True)
+          import glob, json, collections, html, textwrap, datetime as dt, pathlib, os
+          site_dir = os.environ['SITE_DIR']
+          pathlib.Path(f"{site_dir}/data").mkdir(parents=True, exist_ok=True)
 
-# ------------------------------------------------------------------
-# Collate per‑repo JSON into a single organisation‑wide aggregate
-# ------------------------------------------------------------------
-org = collections.defaultdict(lambda: {'hours': 0, 'commits': 0})
-for src in glob.glob("tmp/*.json"):
-    dest = f"{site_dir}/data/{pathlib.Path(src).name}"
-    os.system(f"cp {src} {dest}")  # retain raw files
-    data = json.load(open(src))
-    for user, stats in data.items():
-        if user == 'total':
-            continue
-        org[user]['hours'] += stats['hours']
-        org[user]['commits'] += stats['commits']
+          # ------------------------------------------------------------------
+          # Collate per‑repo JSON into a single organisation‑wide aggregate
+          # ------------------------------------------------------------------
+          org = collections.defaultdict(lambda: {'hours': 0, 'commits': 0})
+          for src in glob.glob("tmp/*.json"):
+              dest = f"{site_dir}/data/{pathlib.Path(src).name}"
+              os.system(f"cp {src} {dest}")  # retain raw files
+              data = json.load(open(src))
+              for user, stats in data.items():
+                  if user == 'total':
+                      continue
+                  org[user]['hours'] += stats['hours']
+                  org[user]['commits'] += stats['commits']
 
-total_hours = sum(v['hours'] for v in org.values())
-total_commits = sum(v['commits'] for v in org.values())
-org_total = {'hours': total_hours, 'commits': total_commits}
-org['total'] = org_total
+          total_hours = sum(v['hours'] for v in org.values())
+          total_commits = sum(v['commits'] for v in org.values())
+          org_total = {'hours': total_hours, 'commits': total_commits}
+          org['total'] = org_total
 
-def rows(d):
-    return "\n".join(
-        f"<tr><td>{html.escape(u)}</td><td>{s['hours']}</td><td>{s['commits']}</td></tr>"
-        for u, s in d.items() if u != 'total')
+          def rows(d):
+              return "\n".join(
+                  f"<tr><td>{html.escape(u)}</td><td>{s['hours']}</td><td>{s['commits']}</td></tr>"
+                  for u, s in d.items() if u != 'total')
 
-sections = []
-for per_repo in glob.glob(f"{site_dir}/data/*.json"):
-    if 'aggregated' in per_repo:  # legacy files, if any
-        continue
-    repo_key = pathlib.Path(per_repo).stem.replace('_','/')
-    r = json.load(open(per_repo))
-    sections.append(
-        f"<h2>{html.escape(repo_key)}</h2>"
-        f"<table class='sortable'><thead><tr><th>Contributor</th>"
-        f"<th>Hours</th><th>Commits</th></tr></thead><tbody>{rows(r)}</tbody></table>"
-    )
+          sections = []
+          for per_repo in glob.glob(f"{site_dir}/data/*.json"):
+              if 'aggregated' in per_repo:  # legacy files, if any
+                  continue
+              repo_key = pathlib.Path(per_repo).stem.replace('_','/')
+              r = json.load(open(per_repo))
+              sections.append(
+                  f"<h2>{html.escape(repo_key)}</h2>"
+                  f"<table class='sortable'><thead><tr><th>Contributor</th>"
+                  f"<th>Hours</th><th>Commits</th></tr></thead><tbody>{rows(r)}</tbody></table>"
+              )
 
-page = f"""
-<!doctype html><html lang=en><head><meta charset=utf-8>
-<meta name=viewport content='width=device-width,initial-scale=1'>
-<title>Collaborator KPIs</title>
-<link rel=stylesheet href='https://cdn.jsdelivr.net/npm/simpledotcss@2/simple.min.css'>
-<script src='https://cdn.jsdelivr.net/npm/sortable-tablesort@1/sortable.min.js' defer></script>
-<script src='https://cdn.jsdelivr.net/npm/chart.js@4'></script>
-<style>canvas{{max-height:400px}}</style></head><body><main>
-<h1>Collaborator KPIs</h1><p><em>Last updated {dt.datetime.utcnow():%Y-%m-%d %H:%M UTC}</em></p>
-<h2>Totals (all repos)</h2>
-<ul><li><strong>Hours</strong>: {org_total['hours']}</li>
-<li><strong>Commits</strong>: {org_total['commits']}</li>
-<li><strong>Contributors</strong>: {len(org)-1}</li></ul>
-<h2>Hours per contributor</h2><canvas id=hoursChart></canvas>
-<h2>Commits per contributor</h2><canvas id=commitsChart></canvas>
-<h2>Detail table (all repos)</h2>
-<table class=sortable><thead><tr><th>Contributor</th><th>Hours</th><th>Commits</th></tr></thead>
-<tbody>{rows(org)}</tbody></table>
-{''.join(sections)}
-<p>Historical JSON snapshots live in <code>/data</code>.</p>
-<script>
-const fmt = x=>x;
-const hoursChart=document.getElementById('hoursChart');
-const commitsChart=document.getElementById('commitsChart');
-const d = {json.dumps(org)};
-const labels = Object.keys(d).filter(k=>k!=='total');
-const H = labels.map(l=>d[l].hours);
-const C = labels.map(l=>d[l].commits);
-new Chart(hoursChart,{type:'bar',data:{labels,datasets:[{label:'Hours',data:H}]},
- options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
-new Chart(commitsChart,{type:'bar',data:{labels,datasets:[{label:'Commits',data:C}]},
- options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
-</script></main></body></html>
-"""
-pathlib.Path(f"{site_dir}/index.html").write_text(textwrap.dedent(page))
-PY
+          page = f"""
+          <!doctype html><html lang=en><head><meta charset=utf-8>
+          <meta name=viewport content='width=device-width,initial-scale=1'>
+          <title>Collaborator KPIs</title>
+          <link rel=stylesheet href='https://cdn.jsdelivr.net/npm/simpledotcss@2/simple.min.css'>
+          <script src='https://cdn.jsdelivr.net/npm/sortable-tablesort@1/sortable.min.js' defer></script>
+          <script src='https://cdn.jsdelivr.net/npm/chart.js@4'></script>
+          <style>canvas{{max-height:400px}}</style></head><body><main>
+          <h1>Collaborator KPIs</h1><p><em>Last updated {dt.datetime.utcnow():%Y-%m-%d %H:%M UTC}</em></p>
+          <h2>Totals (all repos)</h2>
+          <ul><li><strong>Hours</strong>: {org_total['hours']}</li>
+          <li><strong>Commits</strong>: {org_total['commits']}</li>
+          <li><strong>Contributors</strong>: {len(org)-1}</li></ul>
+          <h2>Hours per contributor</h2><canvas id=hoursChart></canvas>
+          <h2>Commits per contributor</h2><canvas id=commitsChart></canvas>
+          <h2>Detail table (all repos)</h2>
+          <table class=sortable><thead><tr><th>Contributor</th><th>Hours</th><th>Commits</th></tr></thead>
+          <tbody>{rows(org)}</tbody></table>
+          {''.join(sections)}
+          <p>Historical JSON snapshots live in <code>/data</code>.</p>
+          <script>
+          const fmt = x=>x;
+          const hoursChart=document.getElementById('hoursChart');
+          const commitsChart=document.getElementById('commitsChart');
+          const d = {json.dumps(org)};
+          const labels = Object.keys(d).filter(k=>k!=='total');
+          const H = labels.map(l=>d[l].hours);
+          const C = labels.map(l=>d[l].commits);
+          new Chart(hoursChart,{type:'bar',data:{labels,datasets:[{label:'Hours',data:H}]},
+           options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+          new Chart(commitsChart,{type:'bar',data:{labels,datasets:[{label:'Commits',data:C}]},
+           options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}});
+          </script></main></body></html>
+          """
+          pathlib.Path(f"{site_dir}/index.html").write_text(textwrap.dedent(page))
+          PY
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
