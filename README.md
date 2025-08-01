@@ -99,7 +99,7 @@ download step would otherwise fail with *“Artifact not found”*.
 | `window_start` | ❌ | *30 days ago* | ISO date `YYYY‑MM‑DD`. |
 | `metrics_branch` | ❌ | `metrics` | Commit JSON snapshots here. |
 | `pages_branch` | ❌ | *(none)* | If set *and* `metrics_branch` set, a static dashboard is pushed here. |
-| `git_hours_version` | ❌ | `latest` | Pin the bundled `git‑hours` binary. |
+| `git_hours_version` | ❌ | `v0.1.2` | Pin the bundled `git‑hours` binary. |
 
 See the full schema in [`action.yml`](action.yml).
 
@@ -140,7 +140,7 @@ site/
 ## 7 ‑ Change‑log (v6 vs v5)
 
 * **Docs:** Added two‑job workflow & artifact guard to prevent *“artifact not found”* pitfalls.  
-* **Defaults:** `git_hours_version` bumped to v1.3.0.  
+* **Defaults:** Documented `git_hours_version` default `v0.1.2`.
 * **Internal:** Minor performance tweaks; no breaking input changes.
 
 Older release notes remain [here](CHANGELOG.md).
