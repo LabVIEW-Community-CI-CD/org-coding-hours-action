@@ -84,3 +84,50 @@ def test_output_path_multiple_repos(tmp_path, monkeypatch):
     expected = "reports/git-hours-aggregated-2024-01-01.json"
     assert line == f"aggregated_report={expected}"
 
+
+def _run_main_subprocess(monkeypatch, tmp_path, repos):
+    """Run org_coding_hours.main intercepting subprocess calls."""
+    monkeypatch.setenv("REPOS", " ".join(repos))
+    output_file = tmp_path / "out.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    monkeypatch.chdir(tmp_path)
+
+    import org_coding_hours as oc
+    oc = importlib.reload(oc)
+
+    clone_dir = {}
+
+    def fake_run(cmd, check):
+        assert cmd[0] == "git" and cmd[1] == "clone"
+        clone_dir["path"] = cmd[-1]
+
+    def fake_check_output(cmd, cwd, text):
+        assert cmd[0] == "git-hours"
+        assert cwd == clone_dir["path"]
+        return json.dumps({"user@example.com": {"hours": 1, "commits": 1}, "total": {"hours": 1, "commits": 1}})
+
+    monkeypatch.setattr(oc.subprocess, "run", fake_run)
+    monkeypatch.setattr(oc.subprocess, "check_output", fake_check_output)
+
+    class FixedDate(datetime.date):
+        @classmethod
+        def today(cls):
+            return cls(2024, 1, 1)
+
+    monkeypatch.setattr(oc.datetime, "date", FixedDate)
+
+    oc.main()
+    return output_file.read_text().strip()
+
+
+def test_main_single_repo(monkeypatch, tmp_path):
+    line = _run_main_subprocess(monkeypatch, tmp_path, ["owner/repo"])
+    expected = "reports/git-hours-owner_repo-2024-01-01.json"
+    assert line == f"aggregated_report={expected}"
+
+
+def test_main_multiple_repos(monkeypatch, tmp_path):
+    line = _run_main_subprocess(monkeypatch, tmp_path, ["foo/bar", "baz/qux"])
+    expected = "reports/git-hours-aggregated-2024-01-01.json"
+    assert line == f"aggregated_report={expected}"
+
