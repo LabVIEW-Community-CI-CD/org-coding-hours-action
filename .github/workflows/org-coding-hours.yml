@@ -133,7 +133,7 @@ jobs:
         run: |
           set -euo pipefail
           python <<'PY'
-          import glob, json, collections, html, textwrap, datetime as dt, pathlib, os
+          import json, collections, html, textwrap, datetime as dt, pathlib, os
           site_dir = os.environ['SITE_DIR']
           pathlib.Path(f"{site_dir}/data").mkdir(parents=True, exist_ok=True)
 
@@ -141,7 +141,9 @@ jobs:
           # Collate per‑repo JSON into a single organisation‑wide aggregate
           # ------------------------------------------------------------------
           org = collections.defaultdict(lambda: {'hours': 0, 'commits': 0})
-          for src in glob.glob("tmp/**/*.json", recursive=True):
+          # actions/download-artifact places each artifact in its own
+          # subdirectory, so search recursively for the JSON files
+          for src in pathlib.Path("tmp").rglob("*.json"):
               dest = f"{site_dir}/data/{pathlib.Path(src).name}"
               os.system(f"cp {src} {dest}")  # retain raw files
               data = json.load(open(src))
