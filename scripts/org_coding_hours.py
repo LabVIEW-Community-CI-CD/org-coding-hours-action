@@ -8,7 +8,7 @@ This script expects two environment variables:
   REPOS        – a space‑separated list of GitHub repositories in owner/name form.
   WINDOW_START – optional start date (YYYY‑MM‑DD) passed through to git-hours as -since.
 
-For each repository, the script performs a shallow clone, runs git-hours, and collects
+For each repository, the script performs a full clone, runs git-hours, and collects
 the per‑contributor statistics. All results are aggregated into a single report that
 sums hours and commits across repositories. Per‑repository and aggregated JSON files
 are written into a 'reports' directory.
@@ -33,9 +33,10 @@ if not REPOS:
 def run_git_hours(repo: str) -> dict:
     """Clone the given repository and run git-hours (optionally with -since)."""
     with tempfile.TemporaryDirectory() as temp:
-        # Shallow clone (depth=1) for efficiency; only fetch the latest history.
+        # Clone the repository. Fetch the full history so git-hours can analyze
+        # all commits.
         subprocess.run(
-            ["git", "clone", "--depth", "1", f"https://github.com/{repo}.git", temp],
+            ["git", "clone", f"https://github.com/{repo}.git", temp],
             check=True,
         )
         cmd = ["git-hours"]
