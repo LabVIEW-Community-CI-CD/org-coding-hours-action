@@ -97,7 +97,7 @@ download step would otherwise fail with *“Artifact not found”*.
 |------|----------|---------|-------|
 | `repos` | ✅ | — | Newline *or* space separated list (`owner/repo`). Wildcards allowed: `my‑org/*`. |
 | `window_start` | ❌ | *30 days ago* | ISO date `YYYY‑MM‑DD`. |
-| `metrics_branch` | ❌ | *(none)* | Commit JSON snapshots here. |
+| `metrics_branch` | ❌ | `metrics` | Commit JSON snapshots here. |
 | `pages_branch` | ❌ | *(none)* | If set *and* `metrics_branch` set, a static dashboard is pushed here. |
 | `git_hours_version` | ❌ | `latest` | Pin the bundled `git‑hours` binary. |
 
