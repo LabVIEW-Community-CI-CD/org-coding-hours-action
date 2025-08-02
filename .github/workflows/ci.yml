@@ -26,7 +26,7 @@ jobs:
       - uses: ./.github/actions/git-hours
         id: gh
         with:
-          version: latest              # or pin, e.g. v0.0.6
+          version: v1.5.0              # pinned source build
 
       # 3. Upload the JSON with a *versioned* name
       - uses: actions/upload-artifact@v4.3.1

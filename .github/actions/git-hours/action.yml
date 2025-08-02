@@ -1,10 +1,10 @@
 name: 'Run git-hours'
-description: 'Download a pre‑built git-hours binary and output hours‑per‑author JSON'
+description: 'Build git-hours from source and output hours‑per‑author JSON'
 inputs:
   version:
-    description: 'Release tag of Kimmobrunfeldt/git-hours to use (e.g. v1.5.0). Use "latest" for the newest.'
+    description: 'Release tag of Kimmobrunfeldt/git-hours to build from source (e.g. v1.5.0). Use "latest" for the newest.'
     required: false
-    default: latest
+    default: v1.5.0
   workdir:
     description: 'Path to the repository that should be analysed'
     required: false
@@ -14,59 +14,21 @@ runs:
   using: "composite"
   steps:
     # ------------------------------------------------------------------
-    # 1. Resolve the release tag
+    # 1. Setup Go and build git-hours
     # ------------------------------------------------------------------
-    - name: Compute tag
-      id: tag
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.x'
+
+    - name: Install git-hours
       shell: bash
       run: |
-        if [ "${{ inputs.version }}" = "latest" ]; then
-          GH_REPO="Kimmobrunfeldt/git-hours"
-          TAG=$(curl -sfL "https://api.github.com/repos/${GH_REPO}/releases/latest" \
-                | grep -m1 '"tag_name"' | cut -d '"' -f4)
-        else
-          TAG="${{ inputs.version }}"
-          GH_REPO="Kimmobrunfeldt/git-hours"
-        fi
-        echo "repo=$GH_REPO" >> "$GITHUB_OUTPUT"
-        echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+        go install github.com/Kimmobrunfeldt/git-hours@${{ inputs.version }}
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
     # ------------------------------------------------------------------
-    # 2. Download the matching tarball
-    # ------------------------------------------------------------------
-    - name: Download pre‑built binary
-      shell: bash
-      env:
-        TAG: ${{ steps.tag.outputs.tag }}
-        GH_REPO: ${{ steps.tag.outputs.repo }}
-      run: |
-        set -euo pipefail
-        # Normalise the platform strings to match release asset names.
-        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
-        ARCH=$(uname -m)
-        case "${ARCH}" in
-          x86_64) ARCH="x86-64" ;;
-          arm64|aarch64) ARCH="arm64" ;;
-          *) echo "Unsupported runner platform ${OS}-${ARCH}" && exit 1 ;;
-        esac
-
-        # Query the release API for an asset matching the current OS/arch.
-        ASSET=$(curl -sfL "https://api.github.com/repos/${GH_REPO}/releases/tags/${TAG}" \
-          | jq -r '.assets[].name' \
-          | grep "${OS}" | grep "${ARCH}" | head -n1)
-
-        if [ -z "$ASSET" ]; then
-          echo "Unsupported runner platform ${OS}-${ARCH}" >&2
-          exit 1
-        fi
-
-        curl -sfL "https://github.com/${GH_REPO}/releases/download/${TAG}/${ASSET}" -o "$ASSET"
-        tar -xzf "$ASSET" git-hours
-        chmod +x git-hours
-        echo "${PWD}" >> $GITHUB_PATH   # <- expose git-hours to later steps
-
-    # ------------------------------------------------------------------
-    # 3. Generate coding‑hours report
+    # 2. Generate coding‑hours report
     # ------------------------------------------------------------------
     - name: Run git-hours
       shell: bash
