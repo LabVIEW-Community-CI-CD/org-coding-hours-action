@@ -42,13 +42,13 @@ runs:
         OS=$(uname -s)
         ARCH=$(uname -m)
         case "${OS}-${ARCH}" in
-          Linux-x86_64)  ASSET="git-hours_${TAG#v}_Linux_x86_64.tar.gz" ;;
-          Darwin-arm64)  ASSET="git-hours_${TAG#v}_Darwin_arm64.tar.gz" ;;
-          Darwin-x86_64) ASSET="git-hours_${TAG#v}_Darwin_x86_64.tar.gz" ;;
+          Linux-x86_64)  ASSET="git-hours_linux_x86-64.tgz" ;;
+          Darwin-arm64)  ASSET="git-hours_darwin_arm64.tgz" ;;
+          Darwin-x86_64) ASSET="git-hours_darwin_x86-64.tgz" ;;
           *) echo "Unsupported runner platform ${OS}-${ARCH}" && exit 1 ;;
         esac
         curl -sfL "https://github.com/${GH_REPO}/releases/download/${TAG}/${ASSET}" -o "$ASSET"
-        tar -xzf "$ASSET" git-hours
+        tar -xzf "$ASSET"
         chmod +x git-hours
         echo "${PWD}" >> $GITHUB_PATH   # <- expose git-hours to later steps
 
@@ -60,4 +60,4 @@ runs:
       env:
         WORKDIR: ${{ inputs.workdir }}
       run: |
-        git-hours -format json -output git-hours.json "$WORKDIR"
+        git-hours "$WORKDIR" > git-hours.json
