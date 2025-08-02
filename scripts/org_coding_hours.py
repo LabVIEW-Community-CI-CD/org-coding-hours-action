@@ -21,6 +21,7 @@ import subprocess
 import tempfile
 import datetime
 import sys
+import re
 
 # Parse environment variables. Split the REPOS string into individual entries.
 REPOS = os.getenv("REPOS", "").split()
@@ -51,6 +52,12 @@ def run_git_hours(repo: str) -> dict:
         out = subprocess.check_output(cmd, cwd=temp, text=True)
         return json.loads(out)
 
+
+def slugify(text: str) -> str:
+    """Return a string safe for artifact names."""
+    text = text.replace("/", "_")
+    return re.sub(r"[^0-9A-Za-z._-]+", "_", text)
+
 def aggregate(results: list[dict]) -> dict:
     """Aggregate per-contributor results across multiple repositories."""
     agg = {"total": {"hours": 0, "commits": 0}}
@@ -79,7 +86,7 @@ def main():
     reports.mkdir(exist_ok=True)
     # Write per-repository reports.
     for repo, data in results.items():
-        name = repo.replace('/', '_')
+        name = slugify(repo)
         (reports / f"git-hours-{name}-{date}.json").write_text(json.dumps(data, indent=2))
     # Write aggregated report.
     agg_path = reports / f"git-hours-aggregated-{date}.json"
@@ -88,9 +95,10 @@ def main():
     # Choose which path to expose as the aggregated_report output. When only
     # a single repository is processed, point at that repo's report so callers
     # don't need to handle aggregation separately.
+    repo_slugs = [slugify(r) for r in REPOS]
+    repo_slug = "-".join(repo_slugs)
     if len(REPOS) == 1:
-        repo_name = REPOS[0].replace('/', '_')
-        output_path = reports / f"git-hours-{repo_name}-{date}.json"
+        output_path = reports / f"git-hours-{repo_slug}-{date}.json"
     else:
         output_path = agg_path
 
@@ -99,6 +107,7 @@ def main():
     if github_output:
         with open(github_output, "a") as fh:
             print(f"aggregated_report={output_path}", file=fh)
+            print(f"repo_slug={repo_slug}", file=fh)
 
     # Output aggregated JSON to console for reference.
     print(json.dumps(agg, indent=2))

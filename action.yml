@@ -27,6 +27,9 @@ outputs:
   aggregated_report:
     description: Path to the aggregated JSON report file
     value: ${{ steps.compute.outputs.aggregated_report }}
+  repo_slug:
+    description: Repositories identifier safe for artifact names (slashes and spaces replaced by underscores)
+    value: ${{ steps.compute.outputs.repo_slug }}
 
 
 runs:
@@ -34,6 +37,7 @@ runs:
   steps:
     # Ensure we have the repository checked out so that git operations and script files are available.
     - name: Checkout repository
+      if: ${{ hashFiles('.git/HEAD') == '' }}
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
