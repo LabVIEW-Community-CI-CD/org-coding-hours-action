@@ -88,9 +88,10 @@ def main():
     # Choose which path to expose as the aggregated_report output. When only
     # a single repository is processed, point at that repo's report so callers
     # don't need to handle aggregation separately.
+    repo_slug = None
     if len(REPOS) == 1:
-        repo_name = REPOS[0].replace('/', '_')
-        output_path = reports / f"git-hours-{repo_name}-{date}.json"
+        repo_slug = REPOS[0].replace('/', '_')
+        output_path = reports / f"git-hours-{repo_slug}-{date}.json"
     else:
         output_path = agg_path
 
@@ -99,6 +100,8 @@ def main():
     if github_output:
         with open(github_output, "a") as fh:
             print(f"aggregated_report={output_path}", file=fh)
+            if repo_slug:
+                print(f"repo_slug={repo_slug}", file=fh)
 
     # Output aggregated JSON to console for reference.
     print(json.dumps(agg, indent=2))

@@ -70,19 +70,22 @@ def _run_main(monkeypatch, tmp_path, repos):
     monkeypatch.setattr(oc.datetime, "date", FixedDate)
 
     oc.main()
-    return output_file.read_text().strip()
+    lines = output_file.read_text().splitlines()
+    return dict(line.split('=', 1) for line in lines)
 
 
 def test_output_path_single_repo(tmp_path, monkeypatch):
-    line = _run_main(monkeypatch, tmp_path, ["owner/repo"])
+    out = _run_main(monkeypatch, tmp_path, ["owner/repo"])
     expected = "reports/git-hours-owner_repo-2024-01-01.json"
-    assert line == f"aggregated_report={expected}"
+    assert out["aggregated_report"] == expected
+    assert out["repo_slug"] == "owner_repo"
 
 
 def test_output_path_multiple_repos(tmp_path, monkeypatch):
-    line = _run_main(monkeypatch, tmp_path, ["foo/bar", "baz/qux"])
+    out = _run_main(monkeypatch, tmp_path, ["foo/bar", "baz/qux"])
     expected = "reports/git-hours-aggregated-2024-01-01.json"
-    assert line == f"aggregated_report={expected}"
+    assert out["aggregated_report"] == expected
+    assert "repo_slug" not in out
 
 
 def _run_main_subprocess(monkeypatch, tmp_path, repos):
@@ -117,19 +120,22 @@ def _run_main_subprocess(monkeypatch, tmp_path, repos):
     monkeypatch.setattr(oc.datetime, "date", FixedDate)
 
     oc.main()
-    return output_file.read_text().strip()
+    lines = output_file.read_text().splitlines()
+    return dict(line.split('=', 1) for line in lines)
 
 
 def test_main_single_repo(monkeypatch, tmp_path):
-    line = _run_main_subprocess(monkeypatch, tmp_path, ["owner/repo"])
+    out = _run_main_subprocess(monkeypatch, tmp_path, ["owner/repo"])
     expected = "reports/git-hours-owner_repo-2024-01-01.json"
-    assert line == f"aggregated_report={expected}"
+    assert out["aggregated_report"] == expected
+    assert out["repo_slug"] == "owner_repo"
 
 
 def test_main_multiple_repos(monkeypatch, tmp_path):
-    line = _run_main_subprocess(monkeypatch, tmp_path, ["foo/bar", "baz/qux"])
+    out = _run_main_subprocess(monkeypatch, tmp_path, ["foo/bar", "baz/qux"])
     expected = "reports/git-hours-aggregated-2024-01-01.json"
-    assert line == f"aggregated_report={expected}"
+    assert out["aggregated_report"] == expected
+    assert "repo_slug" not in out
 
 
 def test_clone_uses_token(monkeypatch, tmp_path):
