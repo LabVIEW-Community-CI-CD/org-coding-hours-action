@@ -22,16 +22,22 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/setup-node@v3
+    - uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # v3
       with:
-        node-version: '14'
+        node-version: '20'
 
     - name: Install git-hours
       shell: bash
       run: |
-        npm install -g git-hours@${{ inputs.version }} || {
+        set -euo pipefail
+        VERSION="${{ inputs.version }}"
+        if [[ ! "$VERSION" =~ ^v?\d+(\.\d+){2}$ ]]; then
+          echo "Invalid git-hours version: $VERSION" >&2
+          exit 1
+        fi
+        npm install -g git-hours@"$VERSION" || {
           echo "Retrying with nodegit pre-install";
-          npm install -g nodegit && npm install -g git-hours@${{ inputs.version }};
+          npm install -g nodegit && npm install -g git-hours@"$VERSION";
         }
         echo "$(npm bin -g)" >> "$GITHUB_PATH"
 
@@ -40,5 +46,6 @@ runs:
       env:
         WORKDIR: ${{ inputs.workdir }}
       run: |
+        set -euo pipefail
         cd "$WORKDIR"
         git-hours > "$GITHUB_WORKSPACE/git-hours.json"
