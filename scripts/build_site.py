@@ -35,8 +35,11 @@ def build_site(agg_path: pathlib.Path):
         f"<tr><td>{l}</td><td>{data[l]['hours']}</td><td>{data[l]['commits']}</td></tr>"
         for l in labels
     )
-    # Current UTC timestamp.
-    updated = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M UTC")
+    # Current UTC timestamp. Use datetime.timezone.utc for compatibility with
+    # Python versions prior to 3.11 where datetime.UTC is unavailable.
+    updated = datetime.datetime.now(datetime.timezone.utc).strftime(
+        "%Y-%m-%d %H:%M UTC"
+    )
     # Compose the page HTML. Use Simple.css and Chart.js via CDN for styling and charts.
     template = Template(textwrap.dedent("""
     <!doctype html><html lang='en'><head>
