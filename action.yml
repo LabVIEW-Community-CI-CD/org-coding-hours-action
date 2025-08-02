@@ -37,29 +37,17 @@ runs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    # Download pre-built git-hours binary and expose it on PATH.
+    # Install git-hours via the Go toolchain and expose it on PATH.
     - name: Setup git-hours
       shell: bash
       run: |
         set -euo pipefail
-        if [ "${{ inputs.git_hours_version }}" = "latest" ]; then
-          TAG=$(curl -sfL https://api.github.com/repos/lazypic/git-hours/releases/latest \
-                | grep -m1 '"tag_name"' | cut -d '"' -f4)
-        else
-          TAG="${{ inputs.git_hours_version }}"
+        VERSION="${{ inputs.git_hours_version }}"
+        if [ "$VERSION" = "latest" ]; then
+          VERSION="latest"
         fi
-        OS=$(uname -s)
-        ARCH=$(uname -m)
-        case "${OS}-${ARCH}" in
-          Linux-x86_64)  ASSET="git-hours_${TAG#v}_Linux_x86_64.tar.gz" ;;
-          Darwin-arm64)  ASSET="git-hours_${TAG#v}_Darwin_arm64.tar.gz" ;;
-          Darwin-x86_64) ASSET="git-hours_${TAG#v}_Darwin_x86_64.tar.gz" ;;
-          *) echo "Unsupported runner platform ${OS}-${ARCH}" >&2; exit 1 ;;
-        esac
-        curl -sfL "https://github.com/lazypic/git-hours/releases/download/${TAG}/${ASSET}" -o "$ASSET"
-        tar -xzf "$ASSET" git-hours
-        chmod +x git-hours
-        echo "$PWD" >> "$GITHUB_PATH"
+        GO111MODULE=on go install github.com/lazypic/git-hours@"$VERSION"
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
     # Setup Python for running our helper scripts. The default Python version available on the runner is sufficient.
     - name: Setup Python
       uses: actions/setup-python@v5
