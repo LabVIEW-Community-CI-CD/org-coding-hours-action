@@ -123,7 +123,8 @@ cd org-coding-hours-action
 npm exec -y @redhat-plumbers-in-action/action-validator .
 
 # Manual git-hours run against this repo
-curl -sL https://github.com/lazypic/git-hours/releases/download/v0.0.6/git-hours_0.0.6_Linux_x86_64.tar.gz  | tar xz git-hours && ./git-hours -format json -output tmp.json .
+curl -sL https://github.com/lazypic/git-hours/releases/download/v0.0.6/git-hours_linux_x86-64.tgz \
+  | tar xz git-hours && ./git-hours -format json -output tmp.json .
 ```
 
 ---
