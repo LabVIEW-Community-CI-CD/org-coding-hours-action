@@ -36,13 +36,12 @@ runs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-    # Install git-hours via the Go toolchain and expose it on PATH.
-    - name: Setup git-hours
-      shell: bash
-      run: |
-        set -euo pipefail
-        GO111MODULE=on go install github.com/Kimmobrunfeldt/git-hours@v1.5.0
-        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+    # Download a pre-built git-hours binary and expose it on PATH.
+    - name: Install git-hours
+      uses: ./.github/actions/git-hours
+      with:
+        version: v1.5.0
+        workdir: ${{ github.workspace }}
     # Setup Python for running our helper scripts. The default Python version available on the runner is sufficient.
     - name: Setup Python
       uses: actions/setup-python@v5

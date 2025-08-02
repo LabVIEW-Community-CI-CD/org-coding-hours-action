@@ -26,7 +26,8 @@ def find_latest_aggregated(reports_dir: pathlib.Path) -> pathlib.Path:
 
 def build_site(agg_path: pathlib.Path):
     """Generate the KPI site based on the aggregated JSON file."""
-    data = json.load(agg_path.open())
+    with agg_path.open() as f:
+        data = json.load(f)
     total = data["total"]
     # Build a list of contributor labels, excluding the 'total' entry.
     labels = [html.escape(k) for k in data if k != "total"]
