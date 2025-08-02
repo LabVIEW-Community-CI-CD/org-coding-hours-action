@@ -1,35 +1,24 @@
-name: 'Run git-hours'
-description: 'Build git-hours from source and output hours‑per‑author JSON'
-inputs:
-  version:
-    description: 'Release tag of Kimmobrunfeldt/git-hours to build from source (e.g. v1.5.0). Use "latest" for the newest.'
-    required: false
-    default: v1.5.0
-  workdir:
-    description: 'Path to the repository that should be analysed'
-    required: false
-    default: ${{ github.workspace }}
-
 runs:
   using: "composite"
   steps:
-    # ------------------------------------------------------------------
-    # 1. Setup Go and build git-hours
-    # ------------------------------------------------------------------
-    - name: Setup Go
-      uses: actions/setup-go@v5
+    # 1. Setup Node.js (use Node 14.x for compatibility with git-hours)
+    - name: Setup Node
+      uses: actions/setup-node@v3
       with:
-        go-version: '1.x'
+        node-version: '14'  # git-hours v1.5.0 targets Node 14 environment
 
+    # 2. Install git-hours via npm (pin to v1.5.0) with fallback for nodegit
     - name: Install git-hours
       shell: bash
       run: |
-        go install github.com/Kimmobrunfeldt/git-hours@${{ inputs.version }}
-        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+        npm install -g git-hours@${{ inputs.version }} || { 
+          echo "Initial install failed, installing nodegit and retrying...";
+          npm install -g nodegit && npm install -g git-hours@${{ inputs.version }};
+        }
+        # Add npm global bin to PATH
+        echo "$(npm bin -g)" >> "$GITHUB_PATH"
 
-    # ------------------------------------------------------------------
-    # 2. Generate coding‑hours report
-    # ------------------------------------------------------------------
+    # 3. Generate coding-hours report using the installed git-hours
     - name: Run git-hours
       shell: bash
       env:
