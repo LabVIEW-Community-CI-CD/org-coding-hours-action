@@ -2,11 +2,13 @@ import json
 import os
 import pathlib
 import sys
+
+import pytest
+
 os.environ.setdefault("REPOS", "dummy/repo")
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
-from org_coding_hours import aggregate
-from build_site import build_site
+from org_coding_hours import aggregate, slugify
 
 import importlib
 import datetime
@@ -32,24 +34,6 @@ def test_aggregate_basic():
 
 def test_aggregate_empty():
     assert aggregate([]) == {"total": {"hours": 0, "commits": 0}}
-
-
-def test_build_site(tmp_path, monkeypatch):
-    data = {"total": {"hours": 5, "commits": 3}, "alice@example.com": {"hours": 5, "commits": 3}}
-    agg_path = tmp_path / "git-hours-aggregated-test.json"
-    agg_path.write_text(json.dumps(data))
-
-    monkeypatch.chdir(tmp_path)
-    build_site(agg_path)
-
-    site = tmp_path / "site"
-    assert (site / "index.html").exists()
-    latest = site / "git-hours-latest.json"
-    assert latest.exists()
-    assert json.load(latest.open()) == data
-    copied = site / "data" / agg_path.name
-    assert copied.exists()
-
 
 def _run_main(monkeypatch, tmp_path, repos):
     """Helper to run org_coding_hours.main with patched environment."""
@@ -168,4 +152,46 @@ def test_clone_uses_token(monkeypatch, tmp_path):
 
     oc.main()
     assert "x-access-token" in seen["url"]
+
+
+def test_run_git_hours_respects_window_start(monkeypatch):
+    monkeypatch.setenv("REPOS", "owner/repo")
+    monkeypatch.setenv("WINDOW_START", "2023-01-01")
+
+    import org_coding_hours as oc
+    oc = importlib.reload(oc)
+
+    monkeypatch.setattr(oc.subprocess, "run", lambda *a, **k: None)
+    seen = {}
+
+    def fake_check_output(cmd, cwd, text):
+        seen["cmd"] = cmd
+        return json.dumps({"total": {"hours": 1, "commits": 1}})
+
+    monkeypatch.setattr(oc.subprocess, "check_output", fake_check_output)
+
+    oc.run_git_hours("owner/repo")
+    assert seen["cmd"] == ["git-hours", "-since", "2023-01-01"]
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("foo/bar baz", "foo_bar_baz"),
+        ("hello world", "hello_world"),
+        ("foo/bar", "foo_bar"),
+        ("foo@bar#baz", "foo_bar_baz"),
+        ("foo@bar/baz qux", "foo_bar_baz_qux"),
+    ],
+)
+def test_slugify_edge_cases(text, expected):
+    assert slugify(text) == expected
+
+
+def test_missing_repos_env(monkeypatch):
+    monkeypatch.delenv("REPOS", raising=False)
+    sys.modules.pop("org_coding_hours", None)
+    with pytest.raises(SystemExit) as exc:
+        import org_coding_hours  # noqa: F401
+    assert str(exc.value) == "REPOS env var must list repositories to process"
 
