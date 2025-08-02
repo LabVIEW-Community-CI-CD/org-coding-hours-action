@@ -99,6 +99,7 @@ jobs:
           fi
           cp "${reports[@]}" "${REPORTS_DIR}/"
       - id: sanitize
+        shell: bash
         run: |
           safe=${REPO//[\\/ ]/-}
           echo "repo=${safe}" >>"$GITHUB_OUTPUT"
