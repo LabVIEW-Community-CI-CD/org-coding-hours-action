@@ -21,6 +21,7 @@ import subprocess
 import tempfile
 import datetime
 import sys
+from typing import Dict, List
 
 # Parse environment variables. Split the REPOS string into individual entries.
 REPOS = os.getenv("REPOS", "").split()
@@ -51,9 +52,9 @@ def run_git_hours(repo: str) -> dict:
         out = subprocess.check_output(cmd, cwd=temp, text=True)
         return json.loads(out)
 
-def aggregate(results: list[dict]) -> dict:
+def aggregate(results: List[dict]) -> Dict[str, dict]:
     """Aggregate per-contributor results across multiple repositories."""
-    agg = {"total": {"hours": 0, "commits": 0}}
+    agg: Dict[str, dict] = {"total": {"hours": 0, "commits": 0}}
     for data in results:
         for email, rec in data.items():
             if email == "total":
