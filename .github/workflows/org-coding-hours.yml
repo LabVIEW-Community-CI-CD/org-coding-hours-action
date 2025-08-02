@@ -1,0 +1,232 @@
+name: Org Coding Hours
+
+on:
+  workflow_dispatch:
+    inputs:
+      window_start:
+        description: 'Optional start date (YYYY‑MM‑DD)'
+        required: false
+      repos:
+        description: |
+          One or more “owner/repo” pairs, comma‑separated.
+          Omit to analyse *this* repository.
+        required: false
+
+# Cancel a redundant run on the same ref, but still allow the
+# matrix jobs inside a single run to execute in parallel.
+concurrency:
+  group: ${{ github.workflow }}‑${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  GO_VERSION: '1.24'
+  METRICS_BRANCH: metrics
+  PAGES_BRANCH: gh-pages
+  REPORTS_DIR: collected-reports
+  SITE_DIR: site
+
+# ───────────────────────────────────────────────────────────────
+# 0) Convert the repos input into a matrix‑friendly JSON array
+# ───────────────────────────────────────────────────────────────
+jobs:
+  set-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      repos: ${{ steps.prepare.outputs.repos }}
+    steps:
+      - id: prepare
+        shell: bash
+        run: |
+          INPUT='${{ github.event.inputs.repos }}'
+          if [[ -z "$INPUT" ]]; then
+            echo "repos=[\"${{ github.repository }}\"]" >>"$GITHUB_OUTPUT"
+          else
+            # Canonicalise comma‑separated list → JSON array
+            arr=$(printf '%s\n' "$INPUT" | sed 's/ *, */,/g; s/^/["/; s/,/","/g; s/$/"]/')
+            echo "repos=$arr" >>"$GITHUB_OUTPUT"
+          fi
+
+# ───────────────────────────────────────────────────────────────
+# 1) Run git‑hours **once per repo** (matrix)
+# ───────────────────────────────────────────────────────────────
+  report:
+    needs: set-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: ${{ fromJSON(needs.set-matrix.outputs.repos) }}  # :contentReference[oaicite:0]{index=0}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Run Org Coding Hours Action
+        uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v7
+        with:
+          repos: ${{ matrix.repo }}
+          window_start: ${{ github.event.inputs.window_start }}
+          metrics_branch: ${{ env.METRICS_BRANCH }}
+          pages_branch: ${{ env.PAGES_BRANCH }}
+
+      - name: Restore reports directory
+        shell: bash
+        run: |
+          git fetch --quiet origin "$METRICS_BRANCH" || exit 0
+          git switch --quiet "$METRICS_BRANCH"
+
+      - name: Collect JSON reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${REPORTS_DIR}"
+          mapfile -t reports < <(find "$GITHUB_WORKSPACE" -type f -path '*/reports/*.json')
+          if (( ${#reports[@]} == 0 )); then
+            echo "::error ::No JSON reports found"
+            exit 1
+          fi
+          cp "${reports[@]}" "${REPORTS_DIR}/"
+
+      - id: sanitize
+        run: echo "repo=${REPO//\//-}" >>"$GITHUB_OUTPUT"
+        env:
+          REPO: ${{ matrix.repo }}
+
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: git-hours-json-${{ steps.sanitize.outputs.repo }}
+          path: ${{ env.REPORTS_DIR }}
+          retention-days: 30
+          if-no-files-found: error
+
+# ───────────────────────────────────────────────────────────────
+# 2) Build the KPI microsite (aggregates all repo artefacts)
+# ───────────────────────────────────────────────────────────────
+  build-site:
+    needs: report
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all JSON artefacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: git-hours-json-*          # grab every repo
+          merge-multiple: true               # flatten into one dir  :contentReference[oaicite:2]{index=2}
+          path: tmp
+
+      - name: Build KPI microsite
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          import json, collections, html, textwrap, datetime as dt, pathlib, os
+          site_dir = os.environ['SITE_DIR']
+          pathlib.Path(f"{site_dir}/data").mkdir(parents=True, exist_ok=True)
+
+          # ------------------------------------------------------------------
+          # Collate per‑repo JSON into a single organisation‑wide aggregate
+          # ------------------------------------------------------------------
+          org = collections.defaultdict(lambda: {'hours': 0, 'commits': 0})
+          # actions/download-artifact places each artifact in its own
+          # subdirectory, so search recursively for the JSON files
+          for src in pathlib.Path("tmp").rglob("*.json"):
+              dest = f"{site_dir}/data/{pathlib.Path(src).name}"
+              os.system(f"cp {src} {dest}")  # retain raw files
+              data = json.load(open(src))
+              for user, stats in data.items():
+                  if user == 'total':
+                      continue
+                  org[user]['hours'] += stats['hours']
+                  org[user]['commits'] += stats['commits']
+
+          total_hours = sum(v['hours'] for v in org.values())
+          total_commits = sum(v['commits'] for v in org.values())
+          org_total = {'hours': total_hours, 'commits': total_commits}
+          org['total'] = org_total
+
+          def rows(d):
+              return "\n".join(
+                  f"<tr><td>{html.escape(u)}</td><td>{s['hours']}</td><td>{s['commits']}</td></tr>"
+                  for u, s in d.items() if u != 'total')
+
+          sections = []
+          for per_repo in glob.glob(f"{site_dir}/data/*.json"):
+              if 'aggregated' in per_repo:  # legacy files, if any
+                  continue
+              repo_key = pathlib.Path(per_repo).stem.replace('_','/')
+              r = json.load(open(per_repo))
+              sections.append(
+                  f"<h2>{html.escape(repo_key)}</h2>"
+                  f"<table class='sortable'><thead><tr><th>Contributor</th>"
+                  f"<th>Hours</th><th>Commits</th></tr></thead><tbody>{rows(r)}</tbody></table>"
+              )
+
+          page = f"""
+          <!doctype html><html lang=en><head><meta charset=utf-8>
+          <meta name=viewport content='width=device-width,initial-scale=1'>
+          <title>Collaborator KPIs</title>
+          <link rel=stylesheet href='https://cdn.jsdelivr.net/npm/simpledotcss@2/simple.min.css'>
+          <script src='https://cdn.jsdelivr.net/npm/sortable-tablesort@1/sortable.min.js' defer></script>
+          <script src='https://cdn.jsdelivr.net/npm/chart.js@4'></script>
+          <style>canvas{{max-height:400px}}</style></head><body><main>
+          <h1>Collaborator KPIs</h1><p><em>Last updated {dt.datetime.utcnow():%Y-%m-%d %H:%M UTC}</em></p>
+          <h2>Totals (all repos)</h2>
+          <ul><li><strong>Hours</strong>: {org_total['hours']}</li>
+          <li><strong>Commits</strong>: {org_total['commits']}</li>
+          <li><strong>Contributors</strong>: {len(org)-1}</li></ul>
+          <h2>Hours per contributor</h2><canvas id=hoursChart></canvas>
+          <h2>Commits per contributor</h2><canvas id=commitsChart></canvas>
+          <h2>Detail table (all repos)</h2>
+          <table class=sortable><thead><tr><th>Contributor</th><th>Hours</th><th>Commits</th></tr></thead>
+          <tbody>{rows(org)}</tbody></table>
+          {''.join(sections)}
+          <p>Historical JSON snapshots live in <code>/data</code>.</p>
+          <script>
+          const fmt = x=>x;
+          const hoursChart=document.getElementById('hoursChart');
+          const commitsChart=document.getElementById('commitsChart');
+          const d = {json.dumps(org)};
+          const labels = Object.keys(d).filter(k=>k!=='total');
+          const H = labels.map(l=>d[l].hours);
+          const C = labels.map(l=>d[l].commits);
+          new Chart(hoursChart,{{type:'bar',data:{{labels,datasets:[{{label:'Hours',data:H}}] }},
+           options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:{{y:{{beginAtZero:true}}}}}}});
+          new Chart(commitsChart,{{type:'bar',data:{{labels,datasets:[{{label:'Commits',data:C}}] }},
+           options:{{responsive:true,maintainAspectRatio:false,plugins:{{legend:{{display:false}}}},scales:{{y:{{beginAtZero:true}}}}}}});
+          </script></main></body></html>
+          """
+          pathlib.Path(f"{site_dir}/index.html").write_text(textwrap.dedent(page))
+          PY
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.SITE_DIR }}
+
+# ───────────────────────────────────────────────────────────────
+# 3) Publish to GitHub Pages (skip on pull‑requests)
+# ───────────────────────────────────────────────────────────────
+  deploy-pages:
+    if: ${{ github.event_name != 'pull_request' }}  # :contentReference[oaicite:3]{index=3}
+    needs: build-site
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
