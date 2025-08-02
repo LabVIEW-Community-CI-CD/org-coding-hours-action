@@ -1,165 +1,149 @@
-# Org Coding Hours Action 🕒  `v6`
-
-Generate **per‑contributor coding‑hour metrics** for one or many repositories, then (optionally) publish
-those JSON reports and a static KPI dashboard to GitHub Pages.
-
-|    |  |
-|----|--|
-| **Latest tag** | `v6` |
-| **Marketplace** | *Coming soon* |
-| **License** | MIT |
+# Org Coding Hours Action — **v8 (docs‑only, broken)**  
+> **Status:** `main` branch is under active repair.  
+> **Tag v8 exists *solely* so other AI assistants can pin a stable README while contributing.  
+> **Do NOT** rely on v8 for production metrics ‑‑ it is known broken.
 
 ---
 
-## 1 ‑ Why would I use this?
+## 📜 Purpose of this README
+This document is written *for AIs as well as humans*.  
+It serves three parallel goals:
 
-* **Quick KPI snapshots** – track volunteer or contractor effort across all repos in your org.  
-* **Works on public *and* private repos** – private repos require `GITHUB_TOKEN` (or a PAT) to authenticate clones. Only GitHub’s REST API is used.
-* **Zero runtime deps** – the action bundles [`git‑hours`](https://github.com/kimmobrunfeldt/git-hours); no npm/pip install.  
-* **Straight‑to‑Pages workflow** – set two optional inputs and *build‑site/deploy* jobs disappear.  
-
----
-
-## 2 ‑ Usage at a glance
-
-| Scenario | Minimum inputs | Extra jobs needed |
-|----------|----------------|-------------------|
-| **Just want JSON**<br>(you’ll process it yourself) | `repos` | *none* |
-| **Want JSON + dashboard**<br>but keep logic in the *workflow* | `repos` | **build‑site**<br>optional **deploy‑pages** |
-| **Auto‑publish JSON + dashboard** | `repos`, `metrics_branch`, `pages_branch` | *none* – the action pushes both branches |
+1. **Quick‑start guide** for people who want to *use* the action once it is fixed.  
+2. **Design & troubleshooting reference** for contributors (human or AI) who wish to *improve* the codebase.  
+3. **Interaction contract** that tells large‑language‑model agents exactly *how* to help without trampling each other.
 
 ---
 
-## 3 ‑ Quick‑start workflows
+## ✨ What the Action *will* do (once fixed)
 
-### 3.1  Single‑job (only JSON)
+| Feature | Description |
+|---------|-------------|
+| **Per‑repo & org‑wide metrics** | Uses the upstream [`git‑hours`](https://github.com/lazypic/git-hours) binary to calculate coding‑hour totals per author, per repository. |
+| **Zero runtime deps** | The action downloads a pre‑built `git‑hours` binary; no Go tool‑chain, Node modules, or Python wheels required. |
+| **Dashboard optional** | JSON reports are always produced; an *optional* Hugo‑based site can be built & deployed to GitHub Pages for KPI visualisation. |
+| **Runs anywhere** | Works on public and private repos (needs a token for private). Linux/macOS runners supported out‑of‑the‑box. |
+
+---
+
+## 🚦 Current blocker (why v8 is “docs‑only”)
+
+*The action fails if it clones a **shallow** repository; `git‑hours` exits with code 1 when it sees `.git/shallow`.*  
+The planned fix is to clone with `fetch-depth: 0` **and** migrate to the pre‑built binary so we no longer compile from source. citeturn3view0
+
+---
+
+## 🛠️ Roadmap & Work Policy for AI Assistants
+
+> **☑  Canonical branch structure**  
+> * `main` — stable, always releasable  
+> * `develop` — integration / feature staging  
+> * `feature/*` — short‑lived topics
+
+### 1 — Open issues **before** submitting a PR  
+Include a *one‑sentence outline* of the intended change and reference this README section.
+
+### 2 — One concern per PR  
+E.g. “replace Go build with binary download” **or** “add Windows runner support”, *not* both.
+
+### 3 — Update this README when:  
+* a public interface changes (`action.yml` inputs/outputs)  
+* troubleshooting steps or FAQs become outdated
+
+### 4 — Commit message conventions
+```
+<type>(scope): <subject>
+
+BODY (why not what) …
+Fixes #123
+```
+*Types:* `fix`, `feat`, `docs`, `ci`, `refactor`, `test`, `chore`
+
+### 5 — Label usage (applies to issues & PRs)  
+* `needs‑repro` – provide a failing workflow link  
+* `good‑first‑task` – scoped, ≤20 LOC change  
+* `ai‑friendly` – well‑specified tasks suited to LLM agents  
+
+---
+
+## 🚀 Quick‑start (post‑fix **expected** syntax)
+
+### Minimal “JSON‑only” workflow
 
 ```yaml
 jobs:
-  report:
+  coding-hours:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v6
+        with: { fetch-depth: 0 }      # full history – **mandatory**
+      - uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v9
         with:
           repos: my-org/*
-      - uses: actions/upload-artifact@v4   # upload **everything** in reports/
-        with:
-          name: git-hours-json
-          path: reports/                   # <‑‑ NOT a wildcard
-```
-
-### 3.2  Two‑job (JSON → site)
-
-```yaml
-jobs:
-  report:
-    runs-on: ubuntu-latest
-    outputs:
-      have_reports: ${{ steps.check.outputs.ok }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v6
-        with:
-          repos: |
-            my-org/project‑A
-            my-org/project‑B
-      - name: Sanity‑check reports/
-        id: check
-        run: test -d reports && echo "ok=true" >>"$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
-        if: steps.check.outputs.ok == 'true'
         with:
-          name: git-hours-json       # <‑‑ MUST match download step
-          path: reports/
-
-  build-site:
-    needs: report
-    if: needs.report.outputs.have_reports == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          name: git-hours-json       # <‑‑ SAME artifact name
-          path: tmp
-      # … your existing site‑generation script …
+          name: git-hours-${{ github.run_number }}.json
+          path: reports/git-hours.json
 ```
 
-*Why the guard?* If `reports/` is missing (e.g. a repo list typo produced no data), the upload step is skipped, so the
-download step would otherwise fail with *“Artifact not found”*.
+### Full “JSON + Dashboard + Pages” (outline)
+
+1. **Job A:** run the action → uploads reports  
+2. **Job B:** build Hugo site from reports  
+3. **Job C:** deploy `public/` to `gh-pages` branch
+
+See [`docs/workflow-examples.md`](docs/workflow-examples.md) once created.
 
 ---
 
-## 4 ‑ Inputs
+## 🔍 Repository tour (AI index)
 
-| Name | Required | Default | Notes |
-|------|----------|---------|-------|
-| `repos` | ✅ | — | Newline *or* space separated list (`owner/repo`). Wildcards allowed: `my‑org/*`. |
-| `window_start` | ❌ | *30 days ago* | ISO date `YYYY‑MM‑DD`. |
-| `metrics_branch` | ❌ | `metrics` | Commit JSON snapshots here. |
-| `pages_branch` | ❌ | *(none)* | If set *and* `metrics_branch` set, a static dashboard is pushed here. |
-| `git_hours_version` | ❌ | `v0.1.2` | Pin the bundled `git‑hours` binary. |
-
-See the full schema in [`action.yml`](action.yml).
+| Path | Purpose |
+|------|---------|
+| `.github/actions/git-hours/` | Composite action wrapper around the `git-hours` binary |
+| `.github/workflows/ci.yml` | Lint, unit test, generate metrics (no release) |
+| `.github/workflows/release.yml` | Tag‑triggered; bundles JSON & (eventually) dashboard |
+| `scripts/` | Bash and PowerShell helper scripts, deterministic & shellcheck‑clean |
+| `tests/` | Bats & PowerShell‑Pester tests (must pass in CI) |
+| `action.yml` | Public interface – **bump `version` on breaking changes!** |
 
 ---
 
-## 5 ‑ Outputs & file layout
+## 🧑‍💻 Local development cheat‑sheet
 
-```
-reports/
-├─ git-hours-aggregated-YYYY‑MM‑DD.json   # all repos
-├─ git-hours-<repo>-YYYY‑MM‑DD.json       # one per repo
-```
+```bash
+# Clone with full history (important!)
+git clone --depth 0 https://github.com/LabVIEW-Community-CI-CD/org-coding-hours-action
+cd org-coding-hours-action
 
-If `pages_branch` is enabled:
+# Run shell unit tests
+./scripts/test.sh
 
-```
-site/
-├─ index.html
-├─ git-hours-latest.json
-└─ data/          # historical snapshots
+# Lint composite action (YAML + metadata)
+npm exec -y @redhat-plumbers-in-action/action-validator .
+
+# Manual git-hours run against this repo
+curl -sL https://github.com/lazypic/git-hours/releases/download/v0.0.6/git-hours_0.0.6_Linux_x86_64.tar.gz  | tar xz git-hours && ./git-hours -format json -output tmp.json .
 ```
 
 ---
 
-## 6 ‑ Troubleshooting
+## ❓ FAQ (for humans *and* AIs)
 
-| Symptom | Likely cause & fix |
-|---------|-------------------|
-| **“Artifact not found”** when another job downloads | 1) Upload step used a *different* `name:` than the download step.<br>2) `reports/` was empty or never created – verify with `run: ls -R`.<br>3) Artifact expired (default 90 days) – raise `retention-days`. |
-| `reports/` directory missing | Action failed earlier – check logs for Go/Python install errors. |
-| Empty JSON (0 hours) | `window_start` too recent, repo typo, or token lacks access to private repos. |
-| Action fails with 403 on a fork | Grant `read` on *actions* and *contents* or use a PAT. |
+**Q.** *Can I run this on Windows self‑hosted runners?*  
+**A.** The composite action currently autodetects `Linux‑x86_64` and macOS variants.  
+Add a case for `Windows‑x86_64` that fetches the `.zip` asset once tested.
 
-*(Tip: add the “Sanity‑check reports/” step shown above; it prevents downstream jobs from failing if no data is produced.)*
+**Q.** *Why not calculate “lines changed” instead of “hours”?*  
+**A.** The upstream `git‑hours` heuristic is more robust across file renames and large binary commits.
 
----
-
-## 7 ‑ Change‑log (v6 vs v5)
-
-* **Docs:** Added two‑job workflow & artifact guard to prevent *“artifact not found”* pitfalls.  
-* **Defaults:** Documented `git_hours_version` default `v0.1.2`.
-* **Internal:** Minor performance tweaks; no breaking input changes.
-
-Older release notes remain [here](CHANGELOG.md).
+**Q.** *What if private repos exceed the GitHub API rate limit?*  
+**A.** Use a Personal Access Token with `repo` scope via the `token` input; the action will throttle and retry automatically.
 
 ---
 
-## 8 ‑ Contributing & Support
-
-Please open an issue with:
-
-* Exact **Actions log** snippet  
-* Your **workflow YAML** (redact secrets)  
-* Output of `ls -R reports` if upload fails
-
-PRs welcome!
-
----
-
-### References
-
-* GitHub Actions workflow syntax –  
-* `actions/upload-artifact` wildcard behaviour –  
+## 🏁 Contributing next steps
+* [ ] **FIX THE SHALLOW‑CLONE BUG** (`fetch-depth: 0` + pre‑built binary)  
+* [ ] Tag **v9** once CI is green  
+* [ ] Publish to the GitHub Marketplace  
+* [ ] Extend metrics to **per‑team aggregates**
