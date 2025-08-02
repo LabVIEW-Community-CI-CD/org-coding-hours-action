@@ -39,14 +39,26 @@ runs:
       run: |
         set -euo pipefail
         GH_REPO="lazypic/git-hours"
-        OS=$(uname -s)
+
+        # Normalise the platform strings to match release asset names.
+        OS=$(uname -s | tr '[:upper:]' '[:lower:]')
         ARCH=$(uname -m)
-        case "${OS}-${ARCH}" in
-          Linux-x86_64)  ASSET="git-hours_${TAG#v}_Linux_x86_64.tar.gz" ;;
-          Darwin-arm64)  ASSET="git-hours_${TAG#v}_Darwin_arm64.tar.gz" ;;
-          Darwin-x86_64) ASSET="git-hours_${TAG#v}_Darwin_x86_64.tar.gz" ;;
+        case "${ARCH}" in
+          x86_64) ARCH="x86-64" ;;
+          arm64|aarch64) ARCH="arm64" ;;
           *) echo "Unsupported runner platform ${OS}-${ARCH}" && exit 1 ;;
         esac
+
+        # Query the release API for an asset matching the current OS/arch.
+        ASSET=$(curl -sfL "https://api.github.com/repos/${GH_REPO}/releases/tags/${TAG}" \
+          | jq -r '.assets[].name' \
+          | grep "${OS}" | grep "${ARCH}" | head -n1)
+
+        if [ -z "$ASSET" ]; then
+          echo "Unsupported runner platform ${OS}-${ARCH}" >&2
+          exit 1
+        fi
+
         curl -sfL "https://github.com/${GH_REPO}/releases/download/${TAG}/${ASSET}" -o "$ASSET"
         tar -xzf "$ASSET" git-hours
         chmod +x git-hours
