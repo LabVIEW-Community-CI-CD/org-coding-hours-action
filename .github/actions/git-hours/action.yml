@@ -1,27 +1,22 @@
 runs:
   using: "composite"
   steps:
-    # 1. Setup Node.js (use Node 14.x for compatibility with git-hours)
-    - name: Setup Node
-      uses: actions/setup-node@v3
+    - uses: actions/setup-node@v3
       with:
-        node-version: '14'  # git-hours v1.5.0 targets Node 14 environment
+        node-version: '14'
 
-    # 2. Install git-hours via npm (pin to v1.5.0) with fallback for nodegit
     - name: Install git-hours
       shell: bash
       run: |
-        npm install -g git-hours@${{ inputs.version }} || { 
-          echo "Initial install failed, installing nodegit and retrying...";
-          npm install -g nodegit && npm install -g git-hours@${{ inputs.version }};
-        }
-        # Add npm global bin to PATH
+        npm install -g git-hours@${{ inputs.version }} \
+        || { npm install -g nodegit && npm install -g git-hours@${{ inputs.version }}; }
         echo "$(npm bin -g)" >> "$GITHUB_PATH"
 
-    # 3. Generate coding-hours report using the installed git-hours
     - name: Run git-hours
       shell: bash
       env:
         WORKDIR: ${{ inputs.workdir }}
       run: |
-        git-hours -format json -output git-hours.json "$WORKDIR"
+        cd "$WORKDIR"
+        # Default CLI output is JSON → capture it
+        git-hours > "$GITHUB_WORKSPACE/git-hours.json"
