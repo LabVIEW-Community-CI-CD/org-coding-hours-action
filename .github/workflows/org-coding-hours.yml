@@ -24,7 +24,6 @@ permissions:
   id-token: write
 
 env:
-  GO_VERSION: '1.24'
   METRICS_BRANCH: metrics
   PAGES_BRANCH: gh-pages
   REPORTS_DIR: collected-reports
@@ -66,11 +65,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
 
       - name: Run Org Coding Hours Action
         uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v9
@@ -133,7 +127,7 @@ jobs:
         run: |
           set -euo pipefail
           python <<'PY'
-          import json, collections, html, textwrap, datetime as dt, pathlib, os
+          import json, collections, html, textwrap, datetime as dt, pathlib, os, glob, shutil
           site_dir = os.environ['SITE_DIR']
           pathlib.Path(f"{site_dir}/data").mkdir(parents=True, exist_ok=True)
 
@@ -145,7 +139,7 @@ jobs:
           # subdirectory, so search recursively for the JSON files
           for src in pathlib.Path("tmp").rglob("*.json"):
               dest = f"{site_dir}/data/{pathlib.Path(src).name}"
-              os.system(f"cp {src} {dest}")  # retain raw files
+              shutil.copy(src, dest)  # retain raw files
               data = json.load(open(src))
               for user, stats in data.items():
                   if user == 'total':

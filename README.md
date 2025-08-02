@@ -16,7 +16,7 @@ It serves three parallel goals:
 | Feature | Description |
 |---------|-------------|
 | **Per‑repo & org‑wide metrics** | Uses the upstream [`git‑hours`](https://github.com/Kimmobrunfeldt/git-hours) binary to calculate coding‑hour totals per author, per repository. |
-| **Go-based install** | The action builds the `git‑hours` CLI via `go install` (`Kimmobrunfeldt/git-hours@v1.5.0`); the runner must have the Go tool‑chain available. |
+| **Pre-built binary** | Downloads the `git‑hours` CLI (e.g. `Kimmobrunfeldt/git-hours@v1.5.0`); no Go tool‑chain required. |
 | **Dashboard optional** | JSON reports are always produced; an *optional* Hugo‑based site can be built & deployed to GitHub Pages for KPI visualisation. |
 | **Runs anywhere** | Works on public and private repos (needs a token for private). Linux/macOS runners supported out‑of‑the‑box. |
 
@@ -73,7 +73,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: git-hours-${{ github.run_number }}.json
-          path: reports/git-hours.json
+          path: reports/git-hours-aggregated-*.json
 ```
 
 ### Full “JSON + Dashboard + Pages” (outline)
