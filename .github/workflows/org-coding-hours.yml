@@ -3,9 +3,12 @@ name: Org Coding Hours
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   hours:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v9
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4
+      - uses: LabVIEW-Community-CI-CD/org-coding-hours-action@0fc5e8b705a8855d2ed08e375eaa345034543be2 # v9

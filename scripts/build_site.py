@@ -46,9 +46,9 @@ def build_site(agg_path: pathlib.Path):
     <!doctype html><html lang='en'><head>
       <meta charset='utf-8'>
       <title>Organization Coding Hours</title>
-      <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/simpledotcss/simple.min.css'>
-      <script src='https://cdn.jsdelivr.net/npm/sortable-tablesort/sortable.min.js' defer></script>
-      <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+      <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/simpledotcss/simple.min.css' integrity='sha384-w3/JhK7GP1jIgYT9phdYXYeUKzhTc4AxDpfqFZO1tkmCHBZrEmZ2c68gaD1yKhZq' crossorigin='anonymous'>
+      <script src='https://cdn.jsdelivr.net/npm/sortable-tablesort/sortable.min.js' integrity='sha384-AdSchXgP8wvr5kTblyNHm7AmdlmQumH+1rc7OsAk7CPyNKXOywnyeISSuSoo9aYv' crossorigin='anonymous' defer></script>
+      <script src='https://cdn.jsdelivr.net/npm/chart.js' integrity='sha384-XcdcwHqIPULERb2yDEM4R0XaQKU3YnDsrTmjACBZyfdVVqjh6xQ4/DCMd7XLcA6Y' crossorigin='anonymous'></script>
       <style>canvas{max-height:400px}</style>
     </head><body><main>
       <h1>Organization Coding Hours</h1>

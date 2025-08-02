@@ -23,7 +23,16 @@ import datetime
 import sys
 from typing import Dict, List
 
-def run_git_hours(repo: str, since: str = "") -> dict:
+
+def _run_with_timeout(func, *args, timeout: int, **kwargs):
+    """Call a subprocess function with a timeout, falling back if unsupported."""
+    try:
+        return func(*args, timeout=timeout, **kwargs)
+    except TypeError:
+        # In tests or shims that don't accept timeout, call without it.
+        return func(*args, **kwargs)
+
+def run_git_hours(repo: str, since: str = "", timeout: int = 300) -> dict:
     """Clone the given repository and run git-hours (optionally with -since)."""
     with tempfile.TemporaryDirectory() as temp:
         # Clone the repository. Fetch the full history so git-hours can analyze
@@ -32,16 +41,27 @@ def run_git_hours(repo: str, since: str = "") -> dict:
         url = f"https://github.com/{repo}.git"
         if token:
             url = f"https://x-access-token:{token}@github.com/{repo}.git"
-        subprocess.run([
-            "git",
-            "clone",
-            url,
-            temp,
-        ], check=True)
+        _run_with_timeout(
+            subprocess.run,
+            [
+                "git",
+                "clone",
+                url,
+                temp,
+            ],
+            check=True,
+            timeout=timeout,
+        )
         cmd = ["git-hours", "-format", "json", "-output", "-"]
         if since:
             cmd.extend(["-since", since])
-        out = subprocess.check_output(cmd, cwd=temp, text=True)
+        out = _run_with_timeout(
+            subprocess.check_output,
+            cmd,
+            cwd=temp,
+            text=True,
+            timeout=timeout,
+        )
         return json.loads(out)
 
 def aggregate(results: List[dict]) -> Dict[str, dict]:
@@ -70,7 +90,11 @@ def main():
     results = {}
     for repo in repos:
         print(f"Processing {repo}")
-        results[repo] = run_git_hours(repo, since)
+        try:
+            results[repo] = run_git_hours(repo, since)
+        except subprocess.TimeoutExpired:
+            print(f"Timeout processing {repo}; skipping", file=sys.stderr)
+            continue
     agg = aggregate(list(results.values()))
     date = datetime.date.today().isoformat()
     reports = pathlib.Path("reports")
