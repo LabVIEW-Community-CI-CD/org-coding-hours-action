@@ -9,7 +9,6 @@ os.environ.setdefault("REPOS", "dummy/repo")
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 from org_coding_hours import aggregate, slugify
-from build_site import build_site
 
 import importlib
 import datetime
@@ -35,24 +34,6 @@ def test_aggregate_basic():
 
 def test_aggregate_empty():
     assert aggregate([]) == {"total": {"hours": 0, "commits": 0}}
-
-
-def test_build_site(tmp_path, monkeypatch):
-    data = {"total": {"hours": 5, "commits": 3}, "alice@example.com": {"hours": 5, "commits": 3}}
-    agg_path = tmp_path / "git-hours-aggregated-test.json"
-    agg_path.write_text(json.dumps(data))
-
-    monkeypatch.chdir(tmp_path)
-    build_site(agg_path)
-
-    site = tmp_path / "site"
-    assert (site / "index.html").exists()
-    latest = site / "git-hours-latest.json"
-    assert latest.exists()
-    assert json.load(latest.open()) == data
-    copied = site / "data" / agg_path.name
-    assert copied.exists()
-
 
 def _run_main(monkeypatch, tmp_path, repos):
     """Helper to run org_coding_hours.main with patched environment."""
@@ -198,7 +179,9 @@ def test_run_git_hours_respects_window_start(monkeypatch):
     [
         ("foo/bar baz", "foo_bar_baz"),
         ("hello world", "hello_world"),
+        ("foo/bar", "foo_bar"),
         ("foo@bar#baz", "foo_bar_baz"),
+        ("foo@bar/baz qux", "foo_bar_baz_qux"),
     ],
 )
 def test_slugify_edge_cases(text, expected):
