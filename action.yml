@@ -1,8 +1,7 @@
 name: "Org Coding Hours"
 description: >
   Composite action to compute coding hours across multiple repositories using
-  git‑hours, aggregate the results, build a KPI website, and publish both the
-  metrics reports and website to dedicated branches.
+  git-hours and aggregate the results into JSON report files.
 
 inputs:
   repos:
@@ -11,18 +10,11 @@ inputs:
   window_start:
     description: Optional start date in YYYY‑MM‑DD format for the report window.
     required: false
-  metrics_branch:
-    description: Branch to which the metrics JSON reports will be committed.
-    default: metrics
-    required: false
-  pages_branch:
-    description: Branch to which the generated KPI site will be committed (for GitHub Pages).
-    default: gh-pages
-    required: false
   git_hours_version:
     description: git-hours release tag to install
     default: v0.1.2
     required: false
+
 outputs:
   aggregated_report:
     description: Path to the aggregated JSON report file
@@ -30,7 +22,6 @@ outputs:
   repo_slug:
     description: Repositories identifier safe for artifact names (slashes and spaces replaced by underscores)
     value: ${{ steps.compute.outputs.repo_slug }}
-
 
 runs:
   using: "composite"
