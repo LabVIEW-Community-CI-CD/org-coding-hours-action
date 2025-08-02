@@ -34,6 +34,7 @@ runs:
   steps:
     # Ensure we have the repository checked out so that git operations and script files are available.
     - name: Checkout repository
+      if: ${{ hashFiles('.git/HEAD') == '' }}
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
