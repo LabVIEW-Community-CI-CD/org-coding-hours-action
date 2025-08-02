@@ -37,11 +37,11 @@ def run_git_hours(repo: str, since: str = "") -> dict:
             "clone",
             url,
             temp,
-        ], check=True)
+        ], check=True, timeout=300)
         cmd = ["git-hours", "-format", "json", "-output", "-"]
         if since:
             cmd.extend(["-since", since])
-        out = subprocess.check_output(cmd, cwd=temp, text=True)
+        out = subprocess.check_output(cmd, cwd=temp, text=True, timeout=300)
         return json.loads(out)
 
 def aggregate(results: List[dict]) -> Dict[str, dict]:
@@ -70,7 +70,11 @@ def main():
     results = {}
     for repo in repos:
         print(f"Processing {repo}")
-        results[repo] = run_git_hours(repo, since)
+        try:
+            results[repo] = run_git_hours(repo, since)
+        except subprocess.TimeoutExpired:
+            print(f"Timed out processing {repo}; skipping", file=sys.stderr)
+            continue
     agg = aggregate(list(results.values()))
     date = datetime.date.today().isoformat()
     reports = pathlib.Path("reports")

@@ -96,11 +96,11 @@ def _run_main_subprocess(monkeypatch, tmp_path, repos):
 
     clone_dir = {}
 
-    def fake_run(cmd, check):
+    def fake_run(cmd, check, timeout=None):
         assert cmd[0] == "git" and cmd[1] == "clone"
         clone_dir["path"] = cmd[-1]
 
-    def fake_check_output(cmd, cwd, text):
+    def fake_check_output(cmd, cwd, text, timeout=None):
         assert cmd[0] == "git-hours"
         assert "-format" in cmd and "json" in cmd
         assert "-output" in cmd and "-" in cmd
@@ -145,10 +145,10 @@ def test_clone_uses_token(monkeypatch, tmp_path):
 
     seen = {}
 
-    def fake_run(cmd, check):
+    def fake_run(cmd, check, timeout=None):
         seen["url"] = cmd[2]
 
-    def fake_check_output(cmd, cwd, text):
+    def fake_check_output(cmd, cwd, text, timeout=None):
         return json.dumps({"total": {"hours": 1, "commits": 1}})
 
     monkeypatch.setattr(oc.subprocess, "run", fake_run)
