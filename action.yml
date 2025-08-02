@@ -19,6 +19,9 @@ inputs:
     description: Branch to which the generated KPI site will be committed (for GitHub Pages).
     default: gh-pages
     required: false
+  token:
+    description: Optional token (PAT) used to access private repositories.
+    required: false
 outputs:
   aggregated_report:
     description: Path to the aggregated JSON report file
@@ -54,6 +57,7 @@ runs:
       env:
         REPOS: ${{ inputs.repos }}
         WINDOW_START: ${{ inputs.window_start }}
+        GITHUB_TOKEN: ${{ inputs.token || github.token }}
       shell: bash
     # Build a simple KPI website from the aggregated report. The generated site will live in the site/ directory.
     - name: Build KPI website

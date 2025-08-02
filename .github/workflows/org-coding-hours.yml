@@ -73,7 +73,7 @@ jobs:
           cache: true
 
       - name: Run Org Coding Hours Action
-        uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v7
+        uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v9
         with:
           repos: ${{ matrix.repo }}
           window_start: ${{ github.event.inputs.window_start }}

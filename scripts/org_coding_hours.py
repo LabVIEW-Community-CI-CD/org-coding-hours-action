@@ -23,15 +23,7 @@ import datetime
 import sys
 from typing import Dict, List
 
-# Parse environment variables. Split the REPOS string into individual entries.
-REPOS = os.getenv("REPOS", "").split()
-SINCE = os.getenv("WINDOW_START", "")
-
-# Ensure the user provided at least one repository; otherwise exit with an error.
-if not REPOS:
-    sys.exit("REPOS env var must list repositories to process")
-
-def run_git_hours(repo: str) -> dict:
+def run_git_hours(repo: str, since: str = "") -> dict:
     """Clone the given repository and run git-hours (optionally with -since)."""
     with tempfile.TemporaryDirectory() as temp:
         # Clone the repository. Fetch the full history so git-hours can analyze
@@ -46,9 +38,9 @@ def run_git_hours(repo: str) -> dict:
             url,
             temp,
         ], check=True)
-        cmd = ["git-hours"]
-        if SINCE:
-            cmd.extend(["-since", SINCE])
+        cmd = ["git-hours", "-format", "json", "-output", "-"]
+        if since:
+            cmd.extend(["-since", since])
         out = subprocess.check_output(cmd, cwd=temp, text=True)
         return json.loads(out)
 
@@ -70,10 +62,15 @@ def aggregate(results: List[dict]) -> Dict[str, dict]:
 
 def main():
     """Main entry point: run git-hours for each repo and write reports."""
+    repos = os.getenv("REPOS", "").split()
+    since = os.getenv("WINDOW_START", "")
+    if not repos:
+        sys.exit("REPOS env var must list repositories to process")
+
     results = {}
-    for repo in REPOS:
+    for repo in repos:
         print(f"Processing {repo}")
-        results[repo] = run_git_hours(repo)
+        results[repo] = run_git_hours(repo, since)
     agg = aggregate(list(results.values()))
     date = datetime.date.today().isoformat()
     reports = pathlib.Path("reports")
@@ -89,8 +86,8 @@ def main():
     # Choose which path to expose as the aggregated_report output. When only
     # a single repository is processed, point at that repo's report so callers
     # don't need to handle aggregation separately.
-    if len(REPOS) == 1:
-        repo_name = REPOS[0].replace('/', '_')
+    if len(repos) == 1:
+        repo_name = repos[0].replace('/', '_')
         output_path = reports / f"git-hours-{repo_name}-{date}.json"
     else:
         output_path = agg_path
