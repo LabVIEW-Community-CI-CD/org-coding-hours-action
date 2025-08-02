@@ -64,10 +64,10 @@ jobs:
           if [[ -z "$latestTag" ]]; then
             newTag="v1.0.0"
           else
-            [[ "$latestTag" =~ ^v([0-9]+)(?:\.([0-9]+))?(?:\.([0-9]+))?$ ]]
+            [[ "$latestTag" =~ ^v([0-9]+)(\.([0-9]+))?(\.([0-9]+))?$ ]]
             major=${BASH_REMATCH[1]}
-            minor=${BASH_REMATCH[2]:-0}
-            patch=${BASH_REMATCH[3]:-0}
+            minor=${BASH_REMATCH[3]:-0}
+            patch=${BASH_REMATCH[5]:-0}
             commits=$(git log "$latestTag"..HEAD --pretty=format:%B)
             if echo "$commits" | grep -qiE 'BREAKING CHANGE|BREAKING-CHANGE|^.*!:'; then
               major=$((major+1)); minor=0; patch=0
