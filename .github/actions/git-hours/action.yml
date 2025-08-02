@@ -2,7 +2,7 @@ name: 'Run git-hours'
 description: 'Download a pre‑built git-hours binary and output hours‑per‑author JSON'
 inputs:
   version:
-    description: 'Release tag of lazypic/git-hours to use (e.g. v0.0.6). Use "latest" for the newest.'
+    description: 'Release tag of Kimmobrunfeldt/git-hours to use (e.g. v1.5.0). Use "latest" for the newest.'
     required: false
     default: latest
   workdir:
@@ -21,12 +21,14 @@ runs:
       shell: bash
       run: |
         if [ "${{ inputs.version }}" = "latest" ]; then
-          GH_REPO="lazypic/git-hours"
+          GH_REPO="Kimmobrunfeldt/git-hours"
           TAG=$(curl -sfL "https://api.github.com/repos/${GH_REPO}/releases/latest" \
                 | grep -m1 '"tag_name"' | cut -d '"' -f4)
         else
           TAG="${{ inputs.version }}"
+          GH_REPO="Kimmobrunfeldt/git-hours"
         fi
+        echo "repo=$GH_REPO" >> "$GITHUB_OUTPUT"
         echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
     # ------------------------------------------------------------------
@@ -36,10 +38,9 @@ runs:
       shell: bash
       env:
         TAG: ${{ steps.tag.outputs.tag }}
+        GH_REPO: ${{ steps.tag.outputs.repo }}
       run: |
         set -euo pipefail
-        GH_REPO="lazypic/git-hours"
-
         # Normalise the platform strings to match release asset names.
         OS=$(uname -s | tr '[:upper:]' '[:lower:]')
         ARCH=$(uname -m)

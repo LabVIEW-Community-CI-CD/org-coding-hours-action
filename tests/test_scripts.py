@@ -1,8 +1,6 @@
 import json
-import os
 import pathlib
 import sys
-os.environ.setdefault("REPOS", "dummy/repo")
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
 from org_coding_hours import aggregate
@@ -10,6 +8,7 @@ from build_site import build_site
 
 import importlib
 import datetime
+import pytest
 
 
 def test_aggregate_basic():
@@ -60,7 +59,7 @@ def _run_main(monkeypatch, tmp_path, repos):
 
     import org_coding_hours as oc
     oc = importlib.reload(oc)
-    monkeypatch.setattr(oc, "run_git_hours", lambda repo: {"total": {"hours": 1, "commits": 1}})
+    monkeypatch.setattr(oc, "run_git_hours", lambda repo, since: {"total": {"hours": 1, "commits": 1}})
 
     class FixedDate(datetime.date):
         @classmethod
@@ -103,6 +102,8 @@ def _run_main_subprocess(monkeypatch, tmp_path, repos):
 
     def fake_check_output(cmd, cwd, text):
         assert cmd[0] == "git-hours"
+        assert "-format" in cmd and "json" in cmd
+        assert "-output" in cmd and "-" in cmd
         assert cwd == clone_dir["path"]
         return json.dumps({"user@example.com": {"hours": 1, "commits": 1}, "total": {"hours": 1, "commits": 1}})
 
@@ -162,4 +163,12 @@ def test_clone_uses_token(monkeypatch, tmp_path):
 
     oc.main()
     assert "x-access-token" in seen["url"]
+
+
+def test_main_requires_repos(monkeypatch):
+    monkeypatch.delenv("REPOS", raising=False)
+    import org_coding_hours as oc
+    oc = importlib.reload(oc)
+    with pytest.raises(SystemExit):
+        oc.main()
 

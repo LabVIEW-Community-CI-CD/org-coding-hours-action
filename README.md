@@ -1,15 +1,11 @@
-# Org Coding Hours Action — **v8 (docs‑only, broken)**  
-> **Status:** `main` branch is under active repair.  
-> **Tag v8 exists *solely* so other AI assistants can pin a stable README while contributing.  
-> **Do NOT** rely on v8 for production metrics ‑‑ it is known broken.
+# Org Coding Hours Action
 
----
 
 ## 📜 Purpose of this README
 This document is written *for AIs as well as humans*.  
 It serves three parallel goals:
 
-1. **Quick‑start guide** for people who want to *use* the action once it is fixed.  
+1. **Quick‑start guide** for people who want to *use* the action.
 2. **Design & troubleshooting reference** for contributors (human or AI) who wish to *improve* the codebase.  
 3. **Interaction contract** that tells large‑language‑model agents exactly *how* to help without trampling each other.
 
@@ -23,13 +19,6 @@ It serves three parallel goals:
 | **Go-based install** | The action builds the `git‑hours` CLI via `go install` (`Kimmobrunfeldt/git-hours@v1.5.0`); the runner must have the Go tool‑chain available. |
 | **Dashboard optional** | JSON reports are always produced; an *optional* Hugo‑based site can be built & deployed to GitHub Pages for KPI visualisation. |
 | **Runs anywhere** | Works on public and private repos (needs a token for private). Linux/macOS runners supported out‑of‑the‑box. |
-
----
-
-## 🚦 Current blocker (why v8 is “docs‑only”)
-
-*The action fails if it clones a **shallow** repository; `git‑hours` exits with code 1 when it sees `.git/shallow`.*
-It now builds the `git‑hours` binary using the Go tool‑chain, so workflows must simply ensure checkouts use `fetch-depth: 0` to provide a full history.
 
 ---
 
@@ -66,7 +55,7 @@ Fixes #123
 
 ---
 
-## 🚀 Quick‑start (post‑fix **expected** syntax)
+## 🚀 Quick‑start
 
 ### Minimal “JSON‑only” workflow
 
@@ -80,6 +69,7 @@ jobs:
       - uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v9
         with:
           repos: my-org/*
+          token: ${{ secrets.GITHUB_TOKEN }}    # optional, use PAT for private repos
       - uses: actions/upload-artifact@v4
         with:
           name: git-hours-${{ github.run_number }}.json
@@ -116,8 +106,8 @@ See [`docs/workflow-examples.md`](docs/workflow-examples.md) once created.
 git clone --depth 0 https://github.com/LabVIEW-Community-CI-CD/org-coding-hours-action
 cd org-coding-hours-action
 
-# Run shell unit tests
-./scripts/test.sh
+# Run Python unit tests
+pytest
 
 # Lint composite action (YAML + metadata)
 npm exec -y @redhat-plumbers-in-action/action-validator .
