@@ -19,8 +19,8 @@ It serves three parallel goals:
 
 | Feature | Description |
 |---------|-------------|
-| **Per‑repo & org‑wide metrics** | Uses the upstream [`git‑hours`](https://github.com/lazypic/git-hours) binary to calculate coding‑hour totals per author, per repository. |
-| **Go-based install** | The action builds the `git‑hours` CLI via `go install`; the runner must have the Go tool‑chain available. |
+| **Per‑repo & org‑wide metrics** | Uses the upstream [`git‑hours`](https://github.com/Kimmobrunfeldt/git-hours) binary to calculate coding‑hour totals per author, per repository. |
+| **Go-based install** | The action builds the `git‑hours` CLI via `go install` (`Kimmobrunfeldt/git-hours@v1.5.0`); the runner must have the Go tool‑chain available. |
 | **Dashboard optional** | JSON reports are always produced; an *optional* Hugo‑based site can be built & deployed to GitHub Pages for KPI visualisation. |
 | **Runs anywhere** | Works on public and private repos (needs a token for private). Linux/macOS runners supported out‑of‑the‑box. |
 
@@ -123,7 +123,7 @@ cd org-coding-hours-action
 npm exec -y @redhat-plumbers-in-action/action-validator .
 
 # Manual git-hours run against this repo
-go install github.com/lazypic/git-hours@latest
+go install github.com/Kimmobrunfeldt/git-hours@v1.5.0
 $(go env GOPATH)/bin/git-hours -format json -output tmp.json .
 ```
 

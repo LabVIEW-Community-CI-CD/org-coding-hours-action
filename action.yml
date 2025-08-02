@@ -19,10 +19,6 @@ inputs:
     description: Branch to which the generated KPI site will be committed (for GitHub Pages).
     default: gh-pages
     required: false
-  git_hours_version:
-    description: git-hours release tag to install (e.g. v0.0.6) or "latest"
-    default: latest
-    required: false
 outputs:
   aggregated_report:
     description: Path to the aggregated JSON report file
@@ -42,11 +38,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
-        VERSION="${{ inputs.git_hours_version }}"
-        if [ "$VERSION" = "latest" ]; then
-          VERSION="latest"
-        fi
-        GO111MODULE=on go install github.com/lazypic/git-hours@"$VERSION"
+        GO111MODULE=on go install github.com/Kimmobrunfeldt/git-hours@v1.5.0
         echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
     # Setup Python for running our helper scripts. The default Python version available on the runner is sufficient.
     - name: Setup Python
