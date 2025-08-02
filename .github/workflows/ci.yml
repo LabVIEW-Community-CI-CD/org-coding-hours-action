@@ -2,20 +2,34 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ develop, main ]
   pull_request:
-    branches: [ main ]
+
+permissions:
+  contents: read
+  id-token: write          # future-proof (OIDC uploads, provenance, etc.)
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  lint:
+  coding-hours:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      # 1. Checkout full history so git‑hours can traverse every commit
+      - uses: actions/checkout@v4.1.3
         with:
-          python-version: '3.x'
-      - name: Verify Python syntax
-        run: python -m py_compile scripts/*.py
-      - name: actionlint
-        uses: rhysd/actionlint@v1.7.7
+          fetch-depth: 0
 
+      # 2. Run git‑hours via the new composite action
+      - uses: ./.github/actions/git-hours
+        id: gh
+        with:
+          version: latest              # or pin, e.g. v0.0.6
+
+      # 3. Upload the JSON with a *versioned* name
+      - uses: actions/upload-artifact@v4.3.1
+        with:
+          name: git-hours-${{ github.run_number }}.json
+          path: git-hours.json

@@ -1,47 +1,63 @@
-name: "git-hours"
-description: "Run git-hours on a repository and emit git-hours.json"
+name: 'Run git-hours'
+description: 'Download a pre‑built git-hours binary and output hours‑per‑author JSON'
 inputs:
-  repo_path:
-    description: Path to the repository to analyse
-    default: '.'
+  version:
+    description: 'Release tag of lazypic/git-hours to use (e.g. v0.0.6). Use "latest" for the newest.'
     required: false
-  git_hours_version:
-    description: git-hours release tag to install
-    default: v0.1.2
+    default: latest
+  workdir:
+    description: 'Path to the repository that should be analysed'
     required: false
-outputs:
-  results:
-    description: Path to generated git-hours.json
-    value: ${{ steps.run.outputs.report }}
-runs:
-  using: composite
-  steps:
-    - name: Setup Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24'
-    - name: Get GOPATH
-      id: go-env
-      run: echo "gopath=$(go env GOPATH)" >> "$GITHUB_OUTPUT"
-      shell: bash
-    - name: Cache git-hours
-      id: cache
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.go-env.outputs.gopath }}/bin/git-hours
-        key: git-hours-${{ inputs.git_hours_version }}-${{ runner.os }}
-    - name: Install git-hours
-      if: steps.cache.outputs.cache-hit != 'true'
-      run: |
-        git clone --depth 1 --branch ${{ inputs.git_hours_version }} https://github.com/trinhminhtriet/git-hours.git gh-src
-        sed -i 's/go 1.24.1/go 1.24/' gh-src/go.mod
-        (cd gh-src && go install .)
-      shell: bash
-    - name: Run git-hours
-      id: run
-      run: |
-        cd "${{ inputs.repo_path }}"
-        git-hours > git-hours.json
-        echo "report=${{ inputs.repo_path }}/git-hours.json" >> "$GITHUB_OUTPUT"
-      shell: bash
+    default: ${{ github.workspace }}
 
+runs:
+  using: "composite"
+  steps:
+    # ------------------------------------------------------------------
+    # 1. Resolve the release tag
+    # ------------------------------------------------------------------
+    - name: Compute tag
+      id: tag
+      shell: bash
+      run: |
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          GH_REPO="lazypic/git-hours"
+          TAG=$(curl -sfL "https://api.github.com/repos/${GH_REPO}/releases/latest" \
+                | grep -m1 '"tag_name"' | cut -d '"' -f4)
+        else
+          TAG="${{ inputs.version }}"
+        fi
+        echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+    # ------------------------------------------------------------------
+    # 2. Download the matching tarball
+    # ------------------------------------------------------------------
+    - name: Download pre‑built binary
+      shell: bash
+      env:
+        TAG: ${{ steps.tag.outputs.tag }}
+      run: |
+        set -euo pipefail
+        GH_REPO="lazypic/git-hours"
+        OS=$(uname -s)
+        ARCH=$(uname -m)
+        case "${OS}-${ARCH}" in
+          Linux-x86_64)  ASSET="git-hours_${TAG#v}_Linux_x86_64.tar.gz" ;;
+          Darwin-arm64)  ASSET="git-hours_${TAG#v}_Darwin_arm64.tar.gz" ;;
+          Darwin-x86_64) ASSET="git-hours_${TAG#v}_Darwin_x86_64.tar.gz" ;;
+          *) echo "Unsupported runner platform ${OS}-${ARCH}" && exit 1 ;;
+        esac
+        curl -sfL "https://github.com/${GH_REPO}/releases/download/${TAG}/${ASSET}" -o "$ASSET"
+        tar -xzf "$ASSET" git-hours
+        chmod +x git-hours
+        echo "${PWD}" >> $GITHUB_PATH   # <- expose git-hours to later steps
+
+    # ------------------------------------------------------------------
+    # 3. Generate coding‑hours report
+    # ------------------------------------------------------------------
+    - name: Run git-hours
+      shell: bash
+      env:
+        WORKDIR: ${{ inputs.workdir }}
+      run: |
+        git-hours -format json -output git-hours.json "$WORKDIR"
