@@ -49,6 +49,21 @@ jobs:
           path: reports/                   # <‑‑ NOT a wildcard
 ```
 
+Need a unique artifact per repository? When processing a single repo, give the
+action step an `id` and use the `repo_slug` output (slashes replaced by
+underscores) to build a safe artifact name:
+
+```yaml
+      - uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v6
+        id: hours
+        with:
+          repos: ni/labview-icon-editor
+      - uses: actions/upload-artifact@v4
+        with:
+          name: git-hours-json-${{ steps.hours.outputs.repo_slug }}
+          path: reports/
+```
+
 ### 3.2  Two‑job (JSON → site)
 
 ```yaml
@@ -112,6 +127,13 @@ reports/
 ├─ git-hours-aggregated-YYYY‑MM‑DD.json   # all repos
 ├─ git-hours-<repo>-YYYY‑MM‑DD.json       # one per repo
 ```
+
+The action exposes two outputs that can help downstream steps:
+
+| Name | Description |
+|------|-------------|
+| `aggregated_report` | Path to the JSON report (either aggregated or the single repo file). |
+| `repo_slug` | Repository identifier with `/` replaced by `_`; useful for artifact names when a single repo is processed. |
 
 If `pages_branch` is enabled:
 
