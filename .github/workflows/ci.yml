@@ -33,3 +33,67 @@ jobs:
         with:
           name: git-hours-${{ github.run_number }}.json
           path: git-hours.json
+
+  org-coding-hours:
+    name: Org Coding Hours (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GO_VERSION: '1.24'
+      METRICS_BRANCH: metrics
+      PAGES_BRANCH: gh-pages
+      REPORTS_DIR: collected-reports
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: single-repo
+            repos: 'ni/labview-icon-editor'
+          - name: dual-repo
+            repos: 'ni/labview-icon-editor ni/actor-framework'
+          - name: triple-repo
+            repos: 'ni/labview-icon-editor ni/actor-framework ni/open-source'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+      - name: Run Org Coding Hours Action
+        uses: ./
+        with:
+          repos: ${{ matrix.repos }}
+          metrics_branch: ${{ env.METRICS_BRANCH }}
+          pages_branch: ${{ env.PAGES_BRANCH }}
+      - name: Restore reports directory
+        shell: bash
+        run: |
+          git fetch --quiet origin "$METRICS_BRANCH" || exit 0
+          git switch --quiet "$METRICS_BRANCH"
+      - name: Collect JSON reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${REPORTS_DIR}"
+          mapfile -t reports < <(find "$GITHUB_WORKSPACE" -type f -path '*/reports/*.json')
+          if (( ${#reports[@]} == 0 )); then
+            echo "::error ::No JSON reports found"
+            exit 1
+          fi
+          cp "${reports[@]}" "${REPORTS_DIR}/"
+      - id: sanitize
+        run: |
+          safe=${REPO//[\\/ ]/-}
+          echo "repo=${safe}" >>"$GITHUB_OUTPUT"
+        env:
+          REPO: ${{ matrix.repos }}
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: git-hours-json-${{ steps.sanitize.outputs.repo }}
+          path: ${{ env.REPORTS_DIR }}
+          retention-days: 30
+          if-no-files-found: error
