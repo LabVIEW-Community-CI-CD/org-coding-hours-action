@@ -85,7 +85,7 @@ def test_output_path_multiple_repos(tmp_path, monkeypatch):
     out = _run_main(monkeypatch, tmp_path, ["foo/bar", "baz/qux"])
     expected = "reports/git-hours-aggregated-2024-01-01.json"
     assert out["aggregated_report"] == expected
-    assert "repo_slug" not in out
+    assert out["repo_slug"] == "foo_bar-baz_qux"
 
 
 def _run_main_subprocess(monkeypatch, tmp_path, repos):
@@ -135,7 +135,7 @@ def test_main_multiple_repos(monkeypatch, tmp_path):
     out = _run_main_subprocess(monkeypatch, tmp_path, ["foo/bar", "baz/qux"])
     expected = "reports/git-hours-aggregated-2024-01-01.json"
     assert out["aggregated_report"] == expected
-    assert "repo_slug" not in out
+    assert out["repo_slug"] == "foo_bar-baz_qux"
 
 
 def test_clone_uses_token(monkeypatch, tmp_path):

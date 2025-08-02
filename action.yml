@@ -28,7 +28,7 @@ outputs:
     description: Path to the aggregated JSON report file
     value: ${{ steps.compute.outputs.aggregated_report }}
   repo_slug:
-    description: Repository identifier safe for artifact names (only set for single repo runs)
+    description: Repositories identifier safe for artifact names (slashes and spaces replaced by underscores)
     value: ${{ steps.compute.outputs.repo_slug }}
 
 
