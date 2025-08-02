@@ -36,7 +36,7 @@ def build_site(agg_path: pathlib.Path):
         for l in labels
     )
     # Current UTC timestamp.
-    updated = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
+    updated = datetime.datetime.now(datetime.UTC).strftime("%Y-%m-%d %H:%M UTC")
     # Compose the page HTML. Use Simple.css and Chart.js via CDN for styling and charts.
     template = Template(textwrap.dedent("""
     <!doctype html><html lang='en'><head>

@@ -28,8 +28,8 @@ It serves three parallel goals:
 
 ## 🚦 Current blocker (why v8 is “docs‑only”)
 
-*The action fails if it clones a **shallow** repository; `git‑hours` exits with code 1 when it sees `.git/shallow`.*  
-The planned fix is to clone with `fetch-depth: 0` **and** migrate to the pre‑built binary so we no longer compile from source. citeturn3view0
+*The action fails if it clones a **shallow** repository; `git‑hours` exits with code 1 when it sees `.git/shallow`.*
+It now downloads a pre‑built `git‑hours` binary, so workflows must simply ensure checkouts use `fetch-depth: 0` to provide a full history.
 
 ---
 
