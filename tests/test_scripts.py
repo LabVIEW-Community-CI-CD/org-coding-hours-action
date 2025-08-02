@@ -12,6 +12,8 @@ from org_coding_hours import aggregate, slugify
 
 import importlib
 import datetime
+import runpy
+import subprocess
 
 
 def test_aggregate_basic():
@@ -154,6 +156,26 @@ def test_clone_uses_token(monkeypatch, tmp_path):
     assert "x-access-token" in seen["url"]
 
 
+def test_run_git_hours_defaults(monkeypatch):
+    monkeypatch.setenv("REPOS", "owner/repo")
+    monkeypatch.delenv("WINDOW_START", raising=False)
+
+    import org_coding_hours as oc
+    oc = importlib.reload(oc)
+
+    monkeypatch.setattr(oc.subprocess, "run", lambda *a, **k: None)
+    seen = {}
+
+    def fake_check_output(cmd, cwd, text):
+        seen["cmd"] = cmd
+        return json.dumps({"total": {"hours": 1, "commits": 1}})
+
+    monkeypatch.setattr(oc.subprocess, "check_output", fake_check_output)
+
+    oc.run_git_hours("owner/repo")
+    assert seen["cmd"] == ["git-hours"]
+
+
 def test_run_git_hours_respects_window_start(monkeypatch):
     monkeypatch.setenv("REPOS", "owner/repo")
     monkeypatch.setenv("WINDOW_START", "2023-01-01")
@@ -194,4 +216,38 @@ def test_missing_repos_env(monkeypatch):
     with pytest.raises(SystemExit) as exc:
         import org_coding_hours  # noqa: F401
     assert str(exc.value) == "REPOS env var must list repositories to process"
+
+
+def test_script_entrypoint(monkeypatch, tmp_path):
+    monkeypatch.setenv("REPOS", "owner/repo")
+    output_file = tmp_path / "out.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(output_file))
+    monkeypatch.chdir(tmp_path)
+
+    def fake_run(cmd, check):
+        assert cmd[0] == "git" and cmd[1] == "clone"
+
+    def fake_check_output(cmd, cwd, text):
+        assert cmd[0] == "git-hours"
+        return json.dumps({"total": {"hours": 1, "commits": 1}})
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr(subprocess, "check_output", fake_check_output)
+
+    class FixedDate(datetime.date):
+        @classmethod
+        def today(cls):
+            return cls(2024, 1, 1)
+
+    monkeypatch.setattr(datetime, "date", FixedDate)
+
+    runpy.run_path(
+        str(pathlib.Path(__file__).resolve().parents[1] / "scripts" / "org_coding_hours.py"),
+        run_name="__main__",
+    )
+
+    lines = output_file.read_text().splitlines()
+    out = dict(line.split("=", 1) for line in lines)
+    assert out["aggregated_report"] == "reports/git-hours-owner_repo-2024-01-01.json"
+    assert out["repo_slug"] == "owner_repo"
 
