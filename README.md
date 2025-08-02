@@ -20,7 +20,7 @@ It serves three parallel goals:
 | Feature | Description |
 |---------|-------------|
 | **Per‑repo & org‑wide metrics** | Uses the upstream [`git‑hours`](https://github.com/lazypic/git-hours) binary to calculate coding‑hour totals per author, per repository. |
-| **Zero runtime deps** | The action downloads a pre‑built `git‑hours` binary; no Go tool‑chain, Node modules, or Python wheels required. |
+| **Go-based install** | The action builds the `git‑hours` CLI via `go install`; the runner must have the Go tool‑chain available. |
 | **Dashboard optional** | JSON reports are always produced; an *optional* Hugo‑based site can be built & deployed to GitHub Pages for KPI visualisation. |
 | **Runs anywhere** | Works on public and private repos (needs a token for private). Linux/macOS runners supported out‑of‑the‑box. |
 
@@ -29,7 +29,7 @@ It serves three parallel goals:
 ## 🚦 Current blocker (why v8 is “docs‑only”)
 
 *The action fails if it clones a **shallow** repository; `git‑hours` exits with code 1 when it sees `.git/shallow`.*
-It now downloads a pre‑built `git‑hours` binary, so workflows must simply ensure checkouts use `fetch-depth: 0` to provide a full history.
+It now builds the `git‑hours` binary using the Go tool‑chain, so workflows must simply ensure checkouts use `fetch-depth: 0` to provide a full history.
 
 ---
 
@@ -123,8 +123,8 @@ cd org-coding-hours-action
 npm exec -y @redhat-plumbers-in-action/action-validator .
 
 # Manual git-hours run against this repo
-curl -sL https://github.com/lazypic/git-hours/releases/download/v0.0.6/git-hours_linux_x86-64.tgz \
-  | tar xz git-hours && ./git-hours -format json -output tmp.json .
+go install github.com/lazypic/git-hours@latest
+$(go env GOPATH)/bin/git-hours -format json -output tmp.json .
 ```
 
 ---
@@ -144,7 +144,7 @@ Add a case for `Windows‑x86_64` that fetches the `.zip` asset once tested.
 ---
 
 ## 🏁 Contributing next steps
-* [ ] **FIX THE SHALLOW‑CLONE BUG** (`fetch-depth: 0` + pre‑built binary)  
+* [ ] **FIX THE SHALLOW‑CLONE BUG** (`fetch-depth: 0` + built binary)
 * [ ] Tag **v9** once CI is green  
 * [ ] Publish to the GitHub Marketplace  
 * [ ] Extend metrics to **per‑team aggregates**
