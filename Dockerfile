@@ -14,10 +14,13 @@ RUN dotnet publish OrgCodingHoursCLI.csproj -c Release -o /app/out \
 # Stage to acquire git-hours binary (Linux x64)
 FROM debian:bullseye-slim AS git-hours
 WORKDIR /tmp
+ARG GITHOURS_VERSION=0.0.6
+ARG GITHOURS_SHA256=e4ba4dc201dfd9d5e06d4ea33604789a0f37fadccacecbb67b93edf8b89cde39
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates tar && rm -rf /var/lib/apt/lists/*
-# Download and extract the git-hours binary (v0.0.6)
-RUN curl -sSL https://github.com/lazypic/git-hours/releases/download/v0.0.6/git-hours_linux_x86-64.tgz -o git-hours.tgz \
+# Download, verify and extract the git-hours binary
+RUN curl -sSL "https://github.com/lazypic/git-hours/releases/download/v${GITHOURS_VERSION}/git-hours_linux_x86-64.tgz" -o git-hours.tgz \
+    && echo "${GITHOURS_SHA256}  git-hours.tgz" | sha256sum -c - \
     && tar -xzf git-hours.tgz && rm git-hours.tgz
 
 # Final runtime image
