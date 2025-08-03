@@ -3,108 +3,30 @@ name: CI
 on:
   push:
     branches: [ main ]
-  pull_request: {}
-
-permissions:
-  contents: read
-  id-token: write
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-      - run: pip install pytest
-      - run: pytest -q tests/test_scripts.py
-
   docker-action:
     runs-on: ubuntu-latest
+    name: Run Docker action on sample repo
     steps:
       - uses: actions/checkout@v4
-      - name: Build and run Docker action
+      - name: Execute action against Hello-World
         uses: ./
         with:
           repos: octocat/Hello-World
 
-  coding-hours:
+  pester-tests:
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
+    name: Run Pester tests for CLI
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - id: ghours
-        uses: ./.github/actions/git-hours
-        with:
-          version: v0.0.6
-        continue-on-error: true
-      - if: ${{ steps.ghours.outcome == 'success' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: git-hours-${{ github.run_number }}.json
-          path: git-hours.json
-          if-no-files-found: ignore
-
-  release:
-    needs: test
-    runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
-    permissions:
-      contents: write
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - id: setver
-        shell: bash
+      - name: Install Pester (latest)
+        shell: pwsh
         run: |
-          set -euo pipefail
-          latestTag=$(git tag -l "v*" | sort -V | tail -n1)
-          if [[ -z "$latestTag" ]]; then
-            newTag="v1.0.0"
-          else
-            [[ "$latestTag" =~ ^v([0-9]+)(\.([0-9]+))?(\.([0-9]+))?$ ]]
-            major=${BASH_REMATCH[1]}
-            minor=${BASH_REMATCH[3]:-0}
-            patch=${BASH_REMATCH[5]:-0}
-            commits=$(git log "$latestTag"..HEAD --pretty=format:%B)
-            if echo "$commits" | grep -qiE 'BREAKING CHANGE|BREAKING-CHANGE|^.*!:'; then
-              major=$((major+1)); minor=0; patch=0
-            elif echo "$commits" | grep -qiE '^feat(\(|:)'; then
-              minor=$((minor+1)); patch=0
-            else
-              patch=$((patch+1))
-            fi
-            newTag="v${major}.${minor}.${patch}"
-          fi
-          echo "new_version=$newTag" >> $GITHUB_OUTPUT
-
-      - id: ghours_release
-        uses: ./.github/actions/git-hours
-        with:
-          version: v0.0.6
-        continue-on-error: true
-
-      - shell: bash
+          Install-Module -Name Pester -Scope CurrentUser -Force -SkipPublisherCheck:contentReference[oaicite:3]{index=3}
+      - name: Run Pester tests
+        shell: pwsh
         run: |
-          set -euo pipefail
-          TAG="${{ steps.setver.outputs.new_version }}"
-          git config user.name "github-actions"
-          git config user.email "actions@users.noreply.github.com"
-          git tag -a "$TAG" -m "Release $TAG"
-          git push origin "$TAG"
-          if [ -f "git-hours.json" ]; then
-            gh release create "$TAG" --generate-notes "git-hours.json"
-          else
-            gh release create "$TAG" --generate-notes
-          fi
+          Invoke-Pester
