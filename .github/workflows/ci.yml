@@ -16,8 +16,8 @@ jobs:
     name: Run Docker action on sample repo
     steps:
       - uses: actions/checkout@v4
-      - name: Publish CLI
-        run: dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release
+      - name: Pack CLI
+        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package
       - name: Execute action against Hello-World
         uses: ./
         with:
@@ -32,6 +32,8 @@ jobs:
         run: dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release
       - name: Run unit tests
         run: dotnet test OrgCodingHoursCLI.Tests/OrgCodingHoursCLI.Tests.csproj
+      - name: Pack CLI
+        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package
       - name: Cache PowerShell modules
         uses: actions/cache@v4
         with:
@@ -99,13 +101,13 @@ jobs:
         shell: pwsh
         run: |
           Invoke-Pester
-      - name: Publish CLI
-        run: dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o cli -r linux-x64 --self-contained true
+      - name: Pack CLI
+        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package -p:PackageVersion=${{ steps.version.outputs.cli_version }}
       - name: Upload CLI artifact
         uses: actions/upload-artifact@v4
         with:
           name: cli-package
-          path: cli
+          path: package/*.nupkg
 
   docker_build:
     runs-on: ubuntu-latest
@@ -117,7 +119,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: cli-package
-          path: cli
+          path: package
       - name: Build Docker image
         run: docker build --build-arg CLI_VERSION=${{ needs.build_cli.outputs.cli_version }} -t org-coding-hours-action:${{ needs.build_cli.outputs.cli_version }} .
       - name: Tag release
