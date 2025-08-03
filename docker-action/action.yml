@@ -27,3 +27,4 @@ runs:
     REPOS: ${{ inputs.repos }}
     WINDOW_START: ${{ inputs.window_start }}
     GIT_HOURS_VERSION: ${{ inputs.git_hours_version }}
+    GITHUB_TOKEN: ${{ github.token }}
