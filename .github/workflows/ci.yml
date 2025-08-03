@@ -25,7 +25,7 @@ jobs:
       - name: Install Pester (latest)
         shell: pwsh
         run: |
-          Install-Module -Name Pester -Scope CurrentUser -Force -SkipPublisherCheck:contentReference[oaicite:3]{index=3}
+          Install-Module -Name Pester -Scope CurrentUser -Force -SkipPublisherCheck
       - name: Build CLI
         run: dotnet build OrgCodingHoursCLI/OrgCodingHoursCLI.csproj --configuration Release
       - name: Run Pester tests
