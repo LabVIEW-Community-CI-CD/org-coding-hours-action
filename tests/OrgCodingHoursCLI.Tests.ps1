@@ -1,5 +1,5 @@
 # Resolve the path to the OrgCodingHoursCLI executable (assumes the project is built)
-$repoRoot = Split-Path -Path $PSScriptRoot -Parent
+Set-Variable -Name repoRoot -Value (Split-Path -Path $PSScriptRoot -Parent) -Scope Script
 
 # Prefer net8.0 builds but fall back to net7.0 if present
 $candidatePaths = @(
@@ -159,7 +159,9 @@ Describe "OrgCodingHoursCLI" {
 
         Context "Docker image" {
             It "contains the CLI executable" {
-                $version = ([xml](Get-Content (Join-Path $repoRoot 'version.props'))).Project.PropertyGroup.Version
+                $repoRoot = Split-Path -Path $PSScriptRoot -Parent
+                $versionFile = Join-Path $repoRoot 'version.props'
+                $version = ([xml](Get-Content -Path $versionFile)).Project.PropertyGroup.Version
                 docker build --build-arg CLI_VERSION=$version -t "org-hours-test:$version" $repoRoot | Out-Null
                 docker run --rm "org-hours-test:$version" /bin/sh -c 'test -f /app/OrgCodingHoursCLI.dll' | Out-Null
                 docker run --rm "org-hours-test:$version" --help 2>&1 | Should -Match "REPOS"
