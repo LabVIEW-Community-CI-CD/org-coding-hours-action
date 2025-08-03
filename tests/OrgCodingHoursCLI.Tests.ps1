@@ -42,7 +42,7 @@ Describe "OrgCodingHoursCLI" {
 
         It "runs successfully and generates a JSON report for the repository" {
             # Arrange
-            $env:REPOS = "octocat/Hello-World"  # Use a simple public repo as input
+            $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action"  # Use the action's own repo as input
 
             # Act
             $null = & $cliExePath   # Execute the CLI (suppress direct console output)
@@ -57,8 +57,8 @@ Describe "OrgCodingHoursCLI" {
             $aggReportFiles = Get-ChildItem -Path "reports" -Filter "*aggregated*.json"
             $aggReportFiles | Should -Not -BeNullOrEmpty   # aggregated report file exists
 
-            # There should be an individual repo JSON report file for Hello-World (repo slug: octocat_Hello-World)
-            $repoReportFiles = Get-ChildItem -Path "reports" -Filter "*octocat_Hello-World*.json"
+            # There should be an individual repo JSON report file for the repo (slug: LabVIEW-Community-CI-CD_org-coding-hours-action)
+            $repoReportFiles = Get-ChildItem -Path "reports" -Filter "*LabVIEW-Community-CI-CD_org-coding-hours-action*.json"
             $repoReportFiles | Should -Not -BeNullOrEmpty  # individual repo report exists
 
             # Load and inspect the aggregated JSON content
@@ -86,7 +86,7 @@ Describe "OrgCodingHoursCLI" {
 
         It "writes GitHub Actions outputs for aggregated_report and repo_slug" {
             # Arrange
-            $env:REPOS = "octocat/Hello-World"
+              $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action"
             # Simulate GitHub Actions output capturing by using a temporary file
             $tempOutputFile = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString() + ".txt")
             $env:GITHUB_OUTPUT = $tempOutputFile
@@ -110,7 +110,7 @@ Describe "OrgCodingHoursCLI" {
             $outputSlug = $Matches[1]
 
             # The repo_slug output should be a slugified identifier of the repo list
-            $outputSlug | Should -Be 'octocat_Hello-World'   # expected slug for "octocat/Hello-World"
+              $outputSlug | Should -Be 'LabVIEW-Community-CI-CD_org-coding-hours-action'   # expected slug for action repo
             # The aggregated_report output should point to an existing JSON file in the workspace
             Test-Path $outputPath | Should -Be $true
             # (Optional) Verify the pointed JSON file has a 'total' field (basic sanity check on content)
@@ -120,7 +120,7 @@ Describe "OrgCodingHoursCLI" {
 
         Context "WINDOW_START filtering" {
             It "includes commits when WINDOW_START is before history" {
-                $env:REPOS = "octocat/Hello-World"
+                $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action"
                 $env:WINDOW_START = "1970-01-01"
                 $null = & $cliExePath
                 $LASTEXITCODE | Should -Be 0
@@ -128,7 +128,7 @@ Describe "OrgCodingHoursCLI" {
                 $agg.total.commits | Should -BeGreaterThan 0
             }
             It "produces zero commits when WINDOW_START is after last commit" {
-                $env:REPOS = "octocat/Hello-World"
+                $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action"
                 $env:WINDOW_START = "2999-01-01"
                 $null = & $cliExePath
                 $agg = Get-Content -Raw -Path (Get-ChildItem reports/*aggregated*.json).FullName | ConvertFrom-Json
@@ -138,22 +138,22 @@ Describe "OrgCodingHoursCLI" {
 
         Context "Multiple repositories" {
             It "aggregates results and concatenates slugs" {
-                $env:REPOS = "octocat/Hello-World octocat/Spoon-Knife"
+                  $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action octocat/Spoon-Knife"
                 $tempOutputFile = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString() + ".txt")
                 $env:GITHUB_OUTPUT = $tempOutputFile
                 $null = & $cliExePath
                 $LASTEXITCODE | Should -Be 0
                 $files = Get-ChildItem reports -Filter "*.json"
                 ($files | Where-Object { $_.Name -like '*aggregated*' }).Count | Should -Be 1
-                ($files | Where-Object { $_.Name -like '*octocat_Hello-World*' }).Count | Should -Be 1
-                ($files | Where-Object { $_.Name -like '*octocat_Spoon-Knife*' }).Count | Should -Be 1
-                $agg = Get-Content -Raw -Path (Get-ChildItem reports/*aggregated*.json).FullName | ConvertFrom-Json
-                $r1 = Get-Content -Raw -Path (Get-ChildItem reports/*octocat_Hello-World*.json).FullName | ConvertFrom-Json
-                $r2 = Get-Content -Raw -Path (Get-ChildItem reports/*octocat_Spoon-Knife*.json).FullName | ConvertFrom-Json
-                $agg.total.commits | Should -Be ($r1.total.commits + $r2.total.commits)
-                $outLines = Get-Content -Path $tempOutputFile
-                ($outLines | Where-Object { $_ -like 'repo_slug=*' }) -match 'repo_slug=(.+)' | Out-Null
-                $Matches[1] | Should -Be 'octocat_Hello-World-octocat_Spoon-Knife'
+                  ($files | Where-Object { $_.Name -like '*LabVIEW-Community-CI-CD_org-coding-hours-action*' }).Count | Should -Be 1
+                  ($files | Where-Object { $_.Name -like '*octocat_Spoon-Knife*' }).Count | Should -Be 1
+                  $agg = Get-Content -Raw -Path (Get-ChildItem reports/*aggregated*.json).FullName | ConvertFrom-Json
+                  $r1 = Get-Content -Raw -Path (Get-ChildItem reports/*LabVIEW-Community-CI-CD_org-coding-hours-action*.json).FullName | ConvertFrom-Json
+                  $r2 = Get-Content -Raw -Path (Get-ChildItem reports/*octocat_Spoon-Knife*.json).FullName | ConvertFrom-Json
+                  $agg.total.commits | Should -Be ($r1.total.commits + $r2.total.commits)
+                  $outLines = Get-Content -Path $tempOutputFile
+                  ($outLines | Where-Object { $_ -like 'repo_slug=*' }) -match 'repo_slug=(.+)' | Out-Null
+                  $Matches[1] | Should -Be 'LabVIEW-Community-CI-CD_org-coding-hours-action-octocat_Spoon-Knife'
             }
         }
 

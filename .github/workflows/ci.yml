@@ -21,7 +21,7 @@ jobs:
       - name: Execute action against Hello-World
         uses: ./
         with:
-          repos: octocat/Hello-World
+          repos: LabVIEW-Community-CI-CD/org-coding-hours-action
 
   pester-tests:
     runs-on: ubuntu-latest
