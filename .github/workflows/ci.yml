@@ -24,6 +24,15 @@ jobs:
       - run: pip install pytest
       - run: pytest -q tests/test_scripts.py
 
+  docker-action:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run Docker action
+        uses: ./docker-action
+        with:
+          repos: octocat/Hello-World
+
   coding-hours:
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
