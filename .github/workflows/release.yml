@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags: ['*']
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build_cli:
+    uses: ./.github/workflows/ci.yml#build_cli
+    secrets: inherit
+
+  publish_cli:
+    needs: build_cli
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+      - name: Pack CLI
+        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package -p:PackageVersion=${{ needs.build_cli.outputs.cli_version }}
+      - name: Publish package
+        run: dotnet nuget push package/*.nupkg --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --api-key ${{ secrets.GITHUB_TOKEN }}
+
+  docker:
+    needs: build_cli
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: cli-package
+          path: cli
+      - name: Log in to ghcr
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Build image
+        run: docker build --build-arg CLI_VERSION=${{ needs.build_cli.outputs.cli_version }} -t ghcr.io/${{ github.repository }}:${{ needs.build_cli.outputs.cli_version }} .
+      - name: Push image
+        run: docker push ghcr.io/${{ github.repository }}:${{ needs.build_cli.outputs.cli_version }}
