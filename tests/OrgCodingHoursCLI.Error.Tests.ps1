@@ -50,4 +50,27 @@ Describe "OrgCodingHoursCLI Error Handling" {
         # It should produce an error message indicating that REPOS is missing
         $result | Should -Match "REPOS"   # Expect the error output to mention the missing 'REPOS' variable
     }
+
+    It "fails when repository slug is invalid" {
+        $env:REPOS = "octocat/ThisRepoDoesNotExist"
+        $result = & $cliExePath 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        $result | Should -Match "clone"
+    }
+
+    It "fails when git-hours returns non-zero" {
+        $fakeDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $fakeDir | Out-Null
+        $scriptPath = Join-Path $fakeDir "git-hours"
+        Set-Content -Path $scriptPath -Value "#!/bin/sh
+echo fail >&2
+exit 1" -NoNewline
+        chmod +x $scriptPath
+        $env:PATH = "$fakeDir$(if($IsWindows){';'}else{':'})$env:PATH"
+        $env:REPOS = "octocat/Hello-World"
+        $result = & $cliExePath 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        $result | Should -Match "git-hours"
+        Remove-Item -Recurse -Force $fakeDir
+    }
 }

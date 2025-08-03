@@ -118,5 +118,52 @@ Describe "OrgCodingHoursCLI" {
             ($outJson.PSObject.Properties.Name -contains 'total') | Should -Be $true
         }
 
+        Context "WINDOW_START filtering" {
+            It "includes commits when WINDOW_START is before history" {
+                $env:REPOS = "octocat/Hello-World"
+                $env:WINDOW_START = "1970-01-01"
+                $null = & $cliExePath
+                $LASTEXITCODE | Should -Be 0
+                $agg = Get-Content -Raw -Path (Get-ChildItem reports/*aggregated*.json).FullName | ConvertFrom-Json
+                $agg.total.commits | Should -BeGreaterThan 0
+            }
+            It "produces zero commits when WINDOW_START is after last commit" {
+                $env:REPOS = "octocat/Hello-World"
+                $env:WINDOW_START = "2999-01-01"
+                $null = & $cliExePath
+                $agg = Get-Content -Raw -Path (Get-ChildItem reports/*aggregated*.json).FullName | ConvertFrom-Json
+                $agg.total.commits | Should -Be 0
+            }
+        }
+
+        Context "Multiple repositories" {
+            It "aggregates results and concatenates slugs" {
+                $env:REPOS = "octocat/Hello-World octocat/Spoon-Knife"
+                $tempOutputFile = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString() + ".txt")
+                $env:GITHUB_OUTPUT = $tempOutputFile
+                $null = & $cliExePath
+                $LASTEXITCODE | Should -Be 0
+                $files = Get-ChildItem reports -Filter "*.json"
+                ($files | Where-Object { $_.Name -like '*aggregated*' }).Count | Should -Be 1
+                ($files | Where-Object { $_.Name -like '*octocat_Hello-World*' }).Count | Should -Be 1
+                ($files | Where-Object { $_.Name -like '*octocat_Spoon-Knife*' }).Count | Should -Be 1
+                $agg = Get-Content -Raw -Path (Get-ChildItem reports/*aggregated*.json).FullName | ConvertFrom-Json
+                $r1 = Get-Content -Raw -Path (Get-ChildItem reports/*octocat_Hello-World*.json).FullName | ConvertFrom-Json
+                $r2 = Get-Content -Raw -Path (Get-ChildItem reports/*octocat_Spoon-Knife*.json).FullName | ConvertFrom-Json
+                $agg.total.commits | Should -Be ($r1.total.commits + $r2.total.commits)
+                $outLines = Get-Content -Path $tempOutputFile
+                ($outLines | Where-Object { $_ -like 'repo_slug=*' }) -match 'repo_slug=(.+)' | Out-Null
+                $Matches[1] | Should -Be 'octocat_Hello-World-octocat_Spoon-Knife'
+            }
+        }
+
+        Context "Docker image" {
+            It "contains the CLI executable" {
+                docker build -t org-hours-test $repoRoot | Out-Null
+                docker run --rm org-hours-test /bin/sh -c 'test -f /app/OrgCodingHoursCLI' | Out-Null
+                docker run --rm org-hours-test --help 2>&1 | Should -Match "REPOS"
+            }
+        }
+
     }
 }

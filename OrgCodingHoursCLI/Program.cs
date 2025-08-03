@@ -17,6 +17,8 @@ class Stats
 
 class Program
 {
+    internal static Func<string, bool> CommandExistsFunc = CommandExistsImpl;
+    internal static Action<string, string, string?> RunCommandAction = RunCommandImpl;
     static int Main()
     {
         try
@@ -162,7 +164,7 @@ class Program
     }
 
     // Aggregate multiple per-repo results into a combined result
-    static Dictionary<string, Stats> AggregateResults(IEnumerable<Dictionary<string, Stats>> resultsList)
+    internal static Dictionary<string, Stats> AggregateResults(IEnumerable<Dictionary<string, Stats>> resultsList)
     {
         var agg = new Dictionary<string, Stats>();
         // Initialize total entry
@@ -207,26 +209,19 @@ class Program
             RunCommand("git", $"clone --depth 1 \"{repoUrl}\" \"{cloneDir}\"");
 
             // 2. Fetch the target branch if it exists (ignore errors if branch doesn’t exist yet)
-            var fetchProc = Process.Start(new ProcessStartInfo("git", $"fetch origin {branchName}")
+            try
             {
-                WorkingDirectory = cloneDir,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            });
-            fetchProc?.WaitForExit();
+                RunCommand("git", $"fetch origin {branchName}", cloneDir);
+            }
+            catch { }
 
             // 3. Check out the target branch (create if it doesn’t exist)
             bool branchExisted = true;
-            var checkoutProc = Process.Start(new ProcessStartInfo("git", $"checkout -B {branchName} origin/{branchName}")
+            try
             {
-                WorkingDirectory = cloneDir,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false
-            });
-            checkoutProc?.WaitForExit();
-            if (checkoutProc == null || checkoutProc.ExitCode != 0)
+                RunCommand("git", $"checkout -B {branchName} origin/{branchName}", cloneDir);
+            }
+            catch
             {
                 // Branch does not exist on remote: create an orphan branch
                 RunCommand("git", $"checkout --orphan {branchName}", cloneDir);
@@ -275,13 +270,12 @@ class Program
             RunCommand("git", "config user.email actions@users.noreply.github.com", cloneDir);
 
             // Check if there are new changes to commit
-            var diffProc = Process.Start(new ProcessStartInfo("git", "diff --cached --quiet") { WorkingDirectory = cloneDir });
-            diffProc?.WaitForExit();
-            if (diffProc != null && diffProc.ExitCode == 0)
+            try
             {
+                RunCommand("git", "diff --cached --quiet", cloneDir);
                 Console.WriteLine($"No changes to commit for branch '{branchName}'");
             }
-            else
+            catch
             {
                 RunCommand("git", $"commit -m \"Update {branchName} data\"", cloneDir);
                 RunCommand("git", $"push -u origin {branchName}", cloneDir);
@@ -338,7 +332,9 @@ class Program
     }
 
     // Determine whether the given command exists on the current system
-    static bool CommandExists(string command)
+    static bool CommandExists(string command) => CommandExistsFunc(command);
+
+    static bool CommandExistsImpl(string command)
     {
         try
         {
@@ -378,14 +374,16 @@ class Program
     }
 
     // Replace unsafe characters in repo names (for file paths and slug)
-    static string Slugify(string text)
+    internal static string Slugify(string text)
     {
         string slug = text.Replace('/', '_').Replace(' ', '_');
         return Regex.Replace(slug, @"[^0-9A-Za-z._-]+", "_");
     }
 
     // Run a shell command and throw if it exits with an error
-    static void RunCommand(string fileName, string arguments, string? workingDir = null)
+    static void RunCommand(string fileName, string arguments, string? workingDir = null) => RunCommandAction(fileName, arguments, workingDir);
+
+    static void RunCommandImpl(string fileName, string arguments, string? workingDir = null)
     {
         var psi = new ProcessStartInfo(fileName, arguments)
         {
