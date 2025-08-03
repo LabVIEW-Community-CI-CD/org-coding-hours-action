@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /go/bin/git-hours /usr/local/bin/git-hours
 ENV PATH="/usr/local/bin:${PATH}"
 
-# Copy action scripts
-COPY scripts/org_coding_hours.py /action/org_coding_hours.py
+# Copy all helper scripts into the image
+COPY scripts/ /action/
 
 ENTRYPOINT ["python3", "/action/org_coding_hours.py"]
 
