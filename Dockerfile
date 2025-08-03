@@ -5,13 +5,14 @@ LABEL org.opencontainers.image.version=$CLI_VERSION
 # Expose the CLI version for downstream steps
 ENV ORG_CLI_VERSION=$CLI_VERSION
 
-# Install git, curl, certificates, node, and unzip
+# Install required packages (git, curl, etc.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git ca-certificates curl libkrb5-dev nodejs npm unzip \
+    git ca-certificates curl libkrb5-dev unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Install git-hours CLI globally
-RUN npm install -g git-hours@1.5.0
+# Include prebuilt git-hours CLI binary
+COPY docker-action/bin/git-hours /usr/local/bin/git-hours
+RUN chmod +x /usr/local/bin/git-hours
 
 # Copy NuGet package for the CLI produced in CI
 COPY package/OrgCodingHoursCLI*.nupkg /tmp/OrgCodingHoursCLI.nupkg
