@@ -1,5 +1,14 @@
 FROM golang:1.24-bullseye AS builder
 
+# Install certificate authorities before fetching git-hours.
+# If building behind a corporate proxy with a custom certificate,
+# copy it into /usr/local/share/ca-certificates/ before the
+# `update-ca-certificates` step.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+# COPY corporate.crt /usr/local/share/ca-certificates/corporate.crt
+RUN update-ca-certificates
+
 # Build the git-hours binary
 ARG GIT_HOURS_VERSION=v0.1.2
 RUN git clone --depth 1 --branch ${GIT_HOURS_VERSION} https://github.com/trinhminhtriet/git-hours.git /src/git-hours \
