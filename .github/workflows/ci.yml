@@ -16,7 +16,7 @@ jobs:
         uses: ./
         with:
           repos: octocat/Hello-World
-
+          
   pester-tests:
     runs-on: ubuntu-latest
     name: Run Pester tests for CLI
@@ -31,4 +31,4 @@ jobs:
       - name: Run Pester tests
         shell: pwsh
         run: |
-          Invoke-Pester
+          Invoke-Pester -Path 'tests'   # Run all tests, including new OrgCodingHoursCLI error scenario tests
