@@ -1,12 +1,14 @@
 # Resolve the path to the OrgCodingHoursCLI executable (same logic as in other test file)
-$repoRoot   = Split-Path -Path $PSScriptRoot -Parent
-$cliExePath = Join-Path $repoRoot "OrgCodingHoursCLI/bin/Release/net7.0/OrgCodingHoursCLI"
-if (-not (Test-Path $cliExePath)) {
-    $cliExePath = Join-Path $repoRoot "OrgCodingHoursCLI/bin/Debug/net7.0/OrgCodingHoursCLI"
-}
-if ($IsWindows) { $cliExePath += ".exe" }
-
 Describe "OrgCodingHoursCLI Error Handling" {
+
+    BeforeAll {
+        $repoRoot = Split-Path -Path $PSScriptRoot -Parent
+        $script:cliExePath = Join-Path $repoRoot "OrgCodingHoursCLI/bin/Release/net7.0/OrgCodingHoursCLI"
+        if (-not (Test-Path $script:cliExePath)) {
+            $script:cliExePath = Join-Path $repoRoot "OrgCodingHoursCLI/bin/Debug/net7.0/OrgCodingHoursCLI"
+        }
+        if ($IsWindows) { $script:cliExePath += ".exe" }
+    }
 
     BeforeEach {
         # Ensure no required env vars are set and no leftover output
@@ -26,7 +28,7 @@ Describe "OrgCodingHoursCLI Error Handling" {
         Remove-Item Env:REPOS -ErrorAction SilentlyContinue
 
         # Act: Run the CLI without the required REPOS input, capturing any error output
-        $result = & $cliExePath 2>&1
+        $result = & $script:cliExePath 2>&1
         $exitCode = $LASTEXITCODE
 
         # Assert: The CLI should exit with an error (non-zero exit code)

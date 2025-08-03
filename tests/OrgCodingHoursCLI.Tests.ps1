@@ -1,12 +1,54 @@
 # Resolve the path to the OrgCodingHoursCLI executable (assumes the project is built)
-$repoRoot   = Split-Path -Path $PSScriptRoot -Parent
-$cliExePath = Join-Path $repoRoot "OrgCodingHoursCLI/bin/Release/net7.0/OrgCodingHoursCLI"
-if (-not (Test-Path $cliExePath)) {
-    $cliExePath = Join-Path $repoRoot "OrgCodingHoursCLI/bin/Debug/net7.0/OrgCodingHoursCLI"
-}
-if ($IsWindows) { $cliExePath += ".exe" }
+
 
 Describe "OrgCodingHoursCLI" {
+
+    BeforeAll {
+        # Resolve path to CLI
+        $repoRoot = Split-Path -Path $PSScriptRoot -Parent
+        $script:cliExePath = Join-Path $repoRoot "OrgCodingHoursCLI/bin/Release/net7.0/OrgCodingHoursCLI"
+        if (-not (Test-Path $script:cliExePath)) {
+            $script:cliExePath = Join-Path $repoRoot "OrgCodingHoursCLI/bin/Debug/net7.0/OrgCodingHoursCLI"
+        }
+        if ($IsWindows) { $script:cliExePath += ".exe" }
+
+        # Create a minimal local git repository and configure git to use it
+        $script:fixturesRoot = Join-Path ([System.IO.Path]::GetTempPath()) "git-fixtures"
+        if (Test-Path $fixturesRoot) { Remove-Item -Recurse -Force $fixturesRoot }
+        $srcDir = Join-Path $fixturesRoot "src"
+        git init $srcDir | Out-Null
+        git -C $srcDir config user.name "Alice"
+        git -C $srcDir config user.email "alice@example.com"
+        Set-Content -Path (Join-Path $srcDir "README.md") "hello"
+        git -C $srcDir add README.md
+        git -C $srcDir commit -m "Initial commit" --date="2023-01-01T00:00:00" | Out-Null
+        git -C $srcDir config user.name "Bob"
+        git -C $srcDir config user.email "bob@example.com"
+        Add-Content -Path (Join-Path $srcDir "README.md") "`nmore"
+        git -C $srcDir add README.md
+        git -C $srcDir commit -m "Second commit" --date="2023-01-02T00:00:00" | Out-Null
+        $bareDir = Join-Path $fixturesRoot "local"
+        New-Item -ItemType Directory -Path $bareDir | Out-Null
+        $script:bareRepo = Join-Path $bareDir "fixture.git"
+        git clone --bare $srcDir $bareRepo | Out-Null
+        git config --global ("url." + $fixturesRoot + "/.insteadOf") "https://github.com/"
+
+        # Stub git-hours to return deterministic JSON
+        $script:oldPath = $env:PATH
+        $fakeGitHours = Join-Path $fixturesRoot "git-hours"
+        @'
+#!/bin/bash
+echo '{"total":{"hours":0,"commits":2},"Alice":{"hours":0,"commits":1},"Bob":{"hours":0,"commits":1}}'
+'@ | Set-Content -Path $fakeGitHours
+        chmod +x $fakeGitHours
+        $env:PATH = $fixturesRoot + [IO.Path]::PathSeparator + $env:PATH
+    }
+
+    AfterAll {
+        git config --global --unset-all ("url." + $fixturesRoot + "/.insteadOf") 2>$null
+        $env:PATH = $script:oldPath
+        Remove-Item -Recurse -Force $fixturesRoot -ErrorAction SilentlyContinue
+    }
 
     BeforeEach {
         # Clear environment variables and previous output between tests
@@ -25,10 +67,10 @@ Describe "OrgCodingHoursCLI" {
 
         It "runs successfully and generates a JSON report for the repository" {
             # Arrange
-            $env:REPOS = "octocat/Hello-World"  # Use a simple public repo as input
+            $env:REPOS = "local/fixture"  # Use the local fixture repo as input
 
             # Act
-            $null = & $cliExePath   # Execute the CLI (suppress direct console output)
+            $null = & $script:cliExePath   # Execute the CLI (suppress direct console output)
 
             # Assert: The CLI should exit successfully (exit code 0)
             $LASTEXITCODE | Should -Be 0
@@ -40,8 +82,8 @@ Describe "OrgCodingHoursCLI" {
             $aggReportFiles = Get-ChildItem -Path "reports" -Filter "*aggregated*.json"
             $aggReportFiles | Should -Not -BeNullOrEmpty   # aggregated report file exists
 
-            # There should be an individual repo JSON report file for Hello-World (repo slug: octocat_Hello-World)
-            $repoReportFiles = Get-ChildItem -Path "reports" -Filter "*octocat_Hello-World*.json"
+            # There should be an individual repo JSON report file for the fixture repo (slug: local_fixture)
+            $repoReportFiles = Get-ChildItem -Path "reports" -Filter "*local_fixture*.json"
             $repoReportFiles | Should -Not -BeNullOrEmpty  # individual repo report exists
 
             # Load and inspect the aggregated JSON content
@@ -69,13 +111,13 @@ Describe "OrgCodingHoursCLI" {
 
         It "writes GitHub Actions outputs for aggregated_report and repo_slug" {
             # Arrange
-            $env:REPOS = "octocat/Hello-World"
+            $env:REPOS = "local/fixture"
             # Simulate GitHub Actions output capturing by using a temporary file
             $tempOutputFile = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString() + ".txt")
             $env:GITHUB_OUTPUT = $tempOutputFile
 
             # Act
-            $null = & $cliExePath
+            $null = & $script:cliExePath
 
             # Assert: The outputs file should exist and contain the expected output lines
             Test-Path $tempOutputFile | Should -Be $true
@@ -93,7 +135,7 @@ Describe "OrgCodingHoursCLI" {
             $outputSlug = $Matches[1]
 
             # The repo_slug output should be a slugified identifier of the repo list:contentReference[oaicite:2]{index=2}
-            $outputSlug | Should -Be 'octocat_Hello-World'   # expected slug for "octocat/Hello-World"
+            $outputSlug | Should -Be 'local_fixture'   # expected slug for local repo
             # The aggregated_report output should point to an existing JSON file in the workspace
             Test-Path $outputPath | Should -Be $true
             # (Optional) Verify the pointed JSON file has a 'total' field (basic sanity check on content)
