@@ -11,10 +11,18 @@ Key features and benefits:
 
 - **Aggregate commit hours across repos** – Analyze one repository or an entire org (supports wildcards like `my-org/*`). The action outputs a combined **organization-wide report** as well as per-repository breakdowns.
 - **Works with private repos** – Private repositories are supported. The action will use the provided `GITHUB_TOKEN` (or a supplied PAT) to authenticate `git` clones via HTTPS for private repositories.
-- **Zero external dependencies** – No need to install languages or packages manually. The action automatically uses a pinned version of the `git-hours` binary (default v0.1.2) and includes a built-in Python script for data processing. Everything runs within the GitHub Actions runner via a Docker container, so runtime requirements are fully contained.
+- **Builds `git-hours` from source** – The CLI fetches and compiles the `git-hours` utility on-the-fly, letting you target any tag or commit. This requires a Go toolchain to be available.
 - **Flexible output** – Use the JSON reports directly (e.g. for further processing or archival), or generate a lightweight **dashboard** to visualize commit hours and commits per contributor. You can let the action publish the results to your repository (in a metrics branch and a Pages branch) or handle the publishing in a separate workflow job.
 - **Seamless GitHub Pages integration** – When configured, the action can push a static site with the latest metrics to a Pages branch (e.g. `gh-pages`), eliminating the need for a separate site generation workflow.
 - **Deterministic and automated releases** – This repository follows semantic versioning for tags (e.g. `v7`, `v7.0.0`). Releases are automated via GitHub Actions: when a new version is prepared, a Git tag is created and a GitHub Release is published using the GitHub CLI with `--generate-notes` to auto-generate the changelog. (See [Release Process](#release-process) for details.)
+
+### Prerequisites
+
+The CLI runs on Windows, macOS, and Linux. Regardless of platform, ensure the following are available:
+
+- `git`
+- A working Go toolchain
+- Network access to the `git-hours` source repository
 
 ## Inputs
 
@@ -100,6 +108,10 @@ jobs:
           name: coding-hours-json
           path: reports/
 ```
+
+### Using a different git-hours version
+
+By default, the CLI builds the `git-hours` tool from its latest tagged release. To use another revision, set the `GIT_HOURS_VERSION` environment variable (or the `git_hours_version` action input) to a Git tag or commit SHA. The CLI will clone the `git-hours` repository at that reference and run `go build` before analyzing repositories.
 
 ### Publishing the Dashboard
 
