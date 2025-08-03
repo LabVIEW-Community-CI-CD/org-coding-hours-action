@@ -1,75 +1,36 @@
 name: "Org Coding Hours"
 description: >
-  Composite action to compute coding hours across multiple repositories using
-  git-hours and aggregate the results into JSON report files.
-
+  GitHub Action to compute coding hours across multiple repositories using git-hours (runs in a Docker container).
 inputs:
   repos:
-    description: Space‑separated list of GitHub repositories in owner/name format.
+    description: Space-separated list of GitHub repositories in owner/name format.
     required: true
   window_start:
-    description: Optional start date in YYYY‑MM‑DD format for the report window.
+    description: Optional start date in YYYY-MM-DD format for the report window.
+    required: false
+  metrics_branch:
+    description: Name of the branch to commit JSON reports to (if provided).
+    required: false
+    default: metrics
+  pages_branch:
+    description: Name of the branch to publish the static site to (requires metrics_branch as well).
     required: false
   git_hours_version:
-    description: git-hours release tag to install
+    description: git-hours release tag to use.
     default: v0.1.2
     required: false
-
 outputs:
   aggregated_report:
     description: Path to the aggregated JSON report file
-    value: ${{ steps.compute.outputs.aggregated_report }}
   repo_slug:
     description: Repositories identifier safe for artifact names (slashes and spaces replaced by underscores)
-    value: ${{ steps.compute.outputs.repo_slug }}
-
 runs:
-  using: "composite"
-  steps:
-    # Ensure we have the repository checked out so that git operations and script files are available.
-    - name: Checkout repository
-      if: ${{ hashFiles('.git/HEAD') == '' }}
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-    # Install Go for git-hours. Always use version 1.24 to match the git-hours requirement.
-    - name: Setup Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24'
-    # Determine GOPATH so we can cache the git-hours binary.
-    - name: Get GOPATH
-      id: go-env
-      run: echo "gopath=$(go env GOPATH)" >> "$GITHUB_OUTPUT"
-      shell: bash
-    # Cache the git-hours binary based on version and OS.
-    - name: Cache git-hours
-      id: cache-git-hours
-      uses: actions/cache@v4
-      with:
-        path: ${{ steps.go-env.outputs.gopath }}/bin/git-hours
-        key: git-hours-${{ inputs.git_hours_version }}-${{ runner.os }}
-    # Install git-hours if not restored from cache.
-    - name: Install git-hours
-      if: steps.cache-git-hours.outputs.cache-hit != 'true'
-      run: |
-        git clone --depth 1 --branch ${{ inputs.git_hours_version }} https://github.com/trinhminhtriet/git-hours.git git-hours-src
-        # The module declares Go 1.24.1; adjust it to 1.24 for compatibility.
-        sed -i 's/go 1.24.1/go 1.24/' git-hours-src/go.mod
-        (cd git-hours-src && go install .)
-      shell: bash
-    # Setup Python for running our helper scripts. The default Python version available on the runner is sufficient.
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-    # Run the org coding hours script which clones each repository, runs git-hours, aggregates results,
-    # and writes per‑repository and aggregated JSON files into a reports/ directory.
-    - name: Compute org coding hours
-      id: compute
-      run: |
-        python3 "${{ github.action_path }}/scripts/org_coding_hours.py"
-      env:
-        REPOS: ${{ inputs.repos }}
-        WINDOW_START: ${{ inputs.window_start }}
-      shell: bash
+  using: "docker"
+  image: "docker-action/Dockerfile"
+  env:
+    REPOS: ${{ inputs.repos }}
+    WINDOW_START: ${{ inputs.window_start }}
+    METRICS_BRANCH: ${{ inputs.metrics_branch }}
+    PAGES_BRANCH: ${{ inputs.pages_branch }}
+    GIT_HOURS_VERSION: ${{ inputs.git_hours_version }}
+    GITHUB_TOKEN: ${{ github.token }}
