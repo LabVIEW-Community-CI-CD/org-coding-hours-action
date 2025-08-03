@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.ComponentModel;
 
 class Stats
 {
@@ -20,6 +21,8 @@ class Program
     {
         try
         {
+            EnsureGitHours();
+
             // Read required environment variables
             string reposEnv = Environment.GetEnvironmentVariable("REPOS") ?? "";
             string windowStart = Environment.GetEnvironmentVariable("WINDOW_START") ?? "";
@@ -288,6 +291,62 @@ class Program
         {
             // Clean up the temporary repo clone
             try { Directory.Delete(cloneDir, true); } catch { /* ignore */ }
+        }
+    }
+
+    // Ensure the git-hours command is available in PATH
+    static void EnsureGitHours()
+    {
+        string pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+        string? repoDir = AppContext.BaseDirectory;
+        string binDir = Path.Combine(repoDir, "bin");
+        if (Directory.Exists(binDir) && Array.IndexOf(pathEnv.Split(Path.PathSeparator), binDir) < 0)
+        {
+            pathEnv = binDir + Path.PathSeparator + pathEnv;
+            Environment.SetEnvironmentVariable("PATH", pathEnv);
+        }
+
+        if (!CommandExists("git-hours"))
+            throw new Exception("git-hours CLI not found in PATH");
+    }
+
+    // Determine whether the given command exists on the current system
+    static bool CommandExists(string command)
+    {
+        try
+        {
+            var psi = new ProcessStartInfo(command, "--help")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false
+            };
+            using var proc = Process.Start(psi);
+            proc?.WaitForExit();
+            return proc != null && proc.ExitCode == 0;
+        }
+        catch (Win32Exception) when (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                var psi = new ProcessStartInfo(command + ".exe", "--help")
+                {
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false
+                };
+                using var proc = Process.Start(psi);
+                proc?.WaitForExit();
+                return proc != null && proc.ExitCode == 0;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+        catch
+        {
+            return false;
         }
     }
 
