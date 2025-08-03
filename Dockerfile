@@ -1,5 +1,6 @@
 # Build stage: compile the .NET 7 console application
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG CLI_VERSION
 WORKDIR /src
 
 # Copy and restore project dependencies
@@ -13,6 +14,10 @@ RUN dotnet publish OrgCodingHoursCLI.csproj -c Release -o /app/out \
 
 # Final runtime image
 FROM node:14-slim AS final
+ARG CLI_VERSION
+LABEL org.opencontainers.image.version=$CLI_VERSION
+# Expose the CLI version for downstream steps
+ENV ORG_CLI_VERSION=$CLI_VERSION
 # Install git, curl, certificates, and nodegit dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git ca-certificates curl libkrb5-dev && rm -rf /var/lib/apt/lists/*

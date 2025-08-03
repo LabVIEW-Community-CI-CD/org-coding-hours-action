@@ -159,9 +159,10 @@ Describe "OrgCodingHoursCLI" {
 
         Context "Docker image" {
             It "contains the CLI executable" {
-                docker build -t org-hours-test $repoRoot | Out-Null
-                docker run --rm org-hours-test /bin/sh -c 'test -f /app/OrgCodingHoursCLI' | Out-Null
-                docker run --rm org-hours-test --help 2>&1 | Should -Match "REPOS"
+                $version = ([xml](Get-Content (Join-Path $repoRoot 'version.props'))).Project.PropertyGroup.Version
+                docker build --build-arg CLI_VERSION=$version -t "org-hours-test:$version" $repoRoot | Out-Null
+                docker run --rm "org-hours-test:$version" /bin/sh -c 'test -f /app/OrgCodingHoursCLI' | Out-Null
+                docker run --rm "org-hours-test:$version" --help 2>&1 | Should -Match "REPOS"
             }
         }
 
