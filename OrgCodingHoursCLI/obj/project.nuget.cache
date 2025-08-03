@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "dgSpecHash": "OJ/wUp35B5E=",
+  "success": true,
+  "projectFilePath": "C:\\lv-community-ci-cd\\org-coding-hours-action\\OrgCodingHoursCLI\\OrgCodingHoursCLI.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\svelderr\\.nuget\\packages\\microsoft.netcore.app.ref\\7.0.20\\microsoft.netcore.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\svelderr\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\7.0.20\\microsoft.windowsdesktop.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\svelderr\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\7.0.20\\microsoft.aspnetcore.app.ref.7.0.20.nupkg.sha512",
+    "C:\\Users\\svelderr\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\7.0.20\\microsoft.netcore.app.host.win-x64.7.0.20.nupkg.sha512"
+  ],
+  "logs": []
+}
