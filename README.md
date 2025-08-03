@@ -5,7 +5,7 @@
 
 ## Overview
 
-**Org Coding Hours** is a GitHub Action that aggregates **per-contributor coding hours** across one or more repositories. It uses the [`git-hours`](https://github.com/kimmobrunfeldt/git-hours) utility to estimate how many hours each contributor has spent (based on commit timestamps), and produces JSON summary reports. Optionally, it can also generate a **static HTML dashboard** and publish both the JSON metrics and the site to dedicated branches (for example, to host on GitHub Pages). This action is ideal for tracking contributor effort across multiple projects in an organization, whether for open-source volunteer tracking or internal metrics.
+**Org Coding Hours** is a GitHub Action that aggregates **per-contributor coding hours** across one or more repositories. It uses the [`git-hours`](https://github.com/trinhminhtriet/git-hours) utility to estimate how many hours each contributor has spent (based on commit timestamps), and produces JSON summary reports. Optionally, it can also generate a **static HTML dashboard** and publish both the JSON metrics and the site to dedicated branches (for example, to host on GitHub Pages). This action is ideal for tracking contributor effort across multiple projects in an organization, whether for open-source volunteer tracking or internal metrics.
 
 Key features and benefits:
 
@@ -134,22 +134,9 @@ This project uses **semantic versioning** for its action releases (e.g. v1.0.0, 
 
 *(For contributors: if you contribute to this action, the maintainers will handle the tagging and release process. Simply follow conventional commit guidelines (using `feat:`, `fix:`, etc. in commit messages) to help the release notes generation.)*
 
-### Regenerating the git-hours binary
+### Using a different git-hours version
 
-This action includes a prebuilt `git-hours` binary (located in `docker-action/bin/git-hours`). When upstream `git-hours` releases a new version, regenerate this file by:
-
-1. Installing Go 1.24.
-2. Cloning and building the desired tag:
-
-   ```bash
-   git clone --depth 1 --branch <tag> https://github.com/trinhminhtriet/git-hours.git
-   sed -i 's/go 1.24.1/go 1.24/' git-hours/go.mod
-   (cd git-hours && go install .)
-   ```
-
-3. Copying the resulting `git-hours` executable from `$(go env GOBIN)` into `docker-action/bin/git-hours` and committing the change.
-
-This keeps the Docker image in sync with upstream `git-hours` releases.
+The action downloads a prebuilt [`git-hours`](https://github.com/trinhminhtriet/git-hours) binary from the GitHub release assets at runtime. By default, it fetches version `v0.1.2`, but you can select another release by setting the `git_hours_version` input when invoking the action. No manual rebuild of the container is required.
 
 ## Additional Notes and Best Practices
 

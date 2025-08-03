@@ -26,7 +26,7 @@ outputs:
     description: Repositories identifier safe for artifact names (slashes and spaces replaced by underscores)
 runs:
   using: "docker"
-  image: "docker-action/Dockerfile"
+  image: "Dockerfile"
   env:
     REPOS: ${{ inputs.repos }}
     WINDOW_START: ${{ inputs.window_start }}
