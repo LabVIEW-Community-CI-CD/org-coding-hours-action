@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   docker-action:
     runs-on: ubuntu-latest
@@ -46,6 +49,8 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.0.x'
+      - name: Extract version
+        run: echo "CLI_VERSION=$(grep -oP '(?<=<Version>).*?(?=</Version>)' version.props)" >> $GITHUB_ENV
       - name: Restore
         run: dotnet restore OrgCodingHoursCLI/OrgCodingHoursCLI.csproj
       - name: Build
@@ -61,7 +66,14 @@ jobs:
         run: |
           Invoke-Pester
       - name: Pack CLI
-        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o ./artifacts
+        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o ./artifacts /p:Version=${CLI_VERSION}
+      - name: Build Docker image
+        run: docker build --build-arg CLI_VERSION=${CLI_VERSION} -t org-coding-hours-action:${CLI_VERSION} .
+      - name: Tag release
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git tag v${CLI_VERSION}
+          git push origin v${CLI_VERSION}
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
