@@ -46,7 +46,7 @@ Describe "OrgCodingHoursCLI" {
 
             # Load and inspect the aggregated JSON content
             $aggReport = Get-Content -Raw -Path $aggReportFiles[0].FullName | ConvertFrom-Json
-            # The aggregated JSON should have a 'total' object and per-contributor entries:contentReference[oaicite:1]{index=1}
+            # The aggregated JSON should have a 'total' object and per-contributor entries
             ($aggReport.PSObject.Properties.Name -contains 'total') | Should -Be $true
             $aggReport.total.hours   | Should -Not -Be $null
             $aggReport.total.commits | Should -Not -Be $null
@@ -92,7 +92,7 @@ Describe "OrgCodingHoursCLI" {
             $slugLine -match '^repo_slug=(.+)$' | Out-Null
             $outputSlug = $Matches[1]
 
-            # The repo_slug output should be a slugified identifier of the repo list:contentReference[oaicite:2]{index=2}
+            # The repo_slug output should be a slugified identifier of the repo list
             $outputSlug | Should -Be 'octocat_Hello-World'   # expected slug for "octocat/Hello-World"
             # The aggregated_report output should point to an existing JSON file in the workspace
             Test-Path $outputPath | Should -Be $true
