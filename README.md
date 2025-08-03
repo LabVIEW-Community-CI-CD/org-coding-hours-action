@@ -5,7 +5,7 @@
 
 ## Overview
 
-**Org Coding Hours** is a composite GitHub Action that aggregates **per-contributor coding hours** across one or more repositories. It uses the [`git-hours`](https://github.com/kimmobrunfeldt/git-hours) utility to estimate how many hours each contributor has spent (based on commit timestamps), and produces JSON summary reports. Optionally, it can also generate a **static HTML dashboard** and publish both the JSON metrics and the site to dedicated branches (for example, to host on GitHub Pages). This action is ideal for tracking contributor effort across multiple projects in an organization, whether for open-source volunteer tracking or internal metrics.
+**Org Coding Hours** is provided as both a composite and Docker container GitHub Action that aggregates **per-contributor coding hours** across one or more repositories. It uses the [`git-hours`](https://github.com/kimmobrunfeldt/git-hours) utility to estimate how many hours each contributor has spent (based on commit timestamps), and produces JSON summary reports. Optionally, it can also generate a **static HTML dashboard** and publish both the JSON metrics and the site to dedicated branches (for example, to host on GitHub Pages). This action is ideal for tracking contributor effort across multiple projects in an organization, whether for open-source volunteer tracking or internal metrics.
 
 Key features and benefits:
 
@@ -97,6 +97,16 @@ jobs:
         with:
           name: coding-hours-json
           path: reports/
+```
+
+Alternatively, you can use the Docker container action:
+
+```yaml
+      - name: Run Org Coding Hours Action (container)
+        uses: LabVIEW-Community-CI-CD/org-coding-hours-action/docker-action@v1
+        with:
+          repos: ${{ github.event.inputs.repos }}
+          window_start: ${{ github.event.inputs.window_start }}
 ```
 
 ### Publishing the Dashboard
