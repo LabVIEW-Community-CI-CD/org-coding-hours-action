@@ -1,5 +1,5 @@
 # Build stage: compile the .NET 7 console application
-FROM mcr.microsoft.com/dotnet/sdk:7.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy and restore project dependencies

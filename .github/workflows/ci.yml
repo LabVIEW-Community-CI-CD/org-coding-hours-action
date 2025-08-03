@@ -12,6 +12,8 @@ jobs:
     name: Run Docker action on sample repo
     steps:
       - uses: actions/checkout@v4
+      - name: Publish CLI
+        run: dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release
       - name: Execute action against Hello-World
         uses: ./
         with:
@@ -22,12 +24,14 @@ jobs:
     name: Run Pester tests for CLI
     steps:
       - uses: actions/checkout@v4
+      - name: Publish CLI
+        run: dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release
+      - name: Run unit tests
+        run: dotnet test OrgCodingHoursCLI.Tests/OrgCodingHoursCLI.Tests.csproj
       - name: Install Pester (latest)
         shell: pwsh
         run: |
           Install-Module -Name Pester -RequiredVersion 5.5.0 -Scope CurrentUser -Force
-      - name: Build CLI
-        run: dotnet build OrgCodingHoursCLI/OrgCodingHoursCLI.csproj --configuration Release
       - name: Run Pester tests
         shell: pwsh
         run: |
