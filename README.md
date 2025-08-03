@@ -142,6 +142,26 @@ This project uses **semantic versioning** for its action releases (e.g. v1.0.0, 
 
 *(For contributors: if you contribute to this action, the maintainers will handle the tagging and release process. Simply follow conventional commit guidelines (using `feat:`, `fix:`, etc. in commit messages) to help the release notes generation.)*
 
+### Regenerating the git-hours binary
+
+The Docker variant of this action carries a prebuilt `git-hours` binary checked into
+`docker-action/bin/git-hours`. When upstream `git-hours` releases a new version, regenerate
+this file by:
+
+1. Installing Go 1.24.
+2. Cloning and building the desired tag:
+
+   ```bash
+   git clone --depth 1 --branch <tag> https://github.com/trinhminhtriet/git-hours.git
+   sed -i 's/go 1.24.1/go 1.24/' git-hours/go.mod
+   (cd git-hours && go install .)
+   ```
+
+3. Copying the resulting `git-hours` executable from `$(go env GOBIN)` into
+   `docker-action/bin/git-hours` and committing the change.
+
+This keeps the Docker image in sync with upstream `git-hours` releases.
+
 ## Additional Notes and Best Practices
 
 - **Runner requirements:** This action runs on Linux runners (Ubuntu) and requires access to the internet to clone the target repositories. Ensure your workflow is using an appropriate runner (e.g., `runs-on: ubuntu-latest`).
