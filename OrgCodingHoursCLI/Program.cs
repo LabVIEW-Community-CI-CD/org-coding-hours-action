@@ -297,17 +297,44 @@ class Program
     // Ensure the git-hours command is available in PATH
     static void EnsureGitHours()
     {
-        string pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-        string? repoDir = AppContext.BaseDirectory;
-        string binDir = Path.Combine(repoDir, "bin");
-        if (Directory.Exists(binDir) && Array.IndexOf(pathEnv.Split(Path.PathSeparator), binDir) < 0)
+        if (CommandExists("git-hours"))
+            return;
+
+        if (!CommandExists("go"))
+            throw new Exception("Go toolchain not found (required for building git-hours)");
+
+        string version = Environment.GetEnvironmentVariable("GIT_HOURS_VERSION") ?? "v0.1.2";
+        string repoUrl = "https://github.com/trinhminhtriet/git-hours";
+        string tempDir = Path.Combine(Path.GetTempPath(), "git_hours_" + Guid.NewGuid());
+        string exe = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
+
+        try
         {
-            pathEnv = binDir + Path.PathSeparator + pathEnv;
-            Environment.SetEnvironmentVariable("PATH", pathEnv);
+            RunCommand("git", $"clone --quiet {repoUrl} \"{tempDir}\"");
+            RunCommand("git", $"checkout {version}", tempDir);
+
+            string builtPath = Path.Combine(tempDir, $"git-hours{exe}");
+            RunCommand("go", $"build -o \"{builtPath}\"", tempDir);
+
+            string binDir = Path.Combine(AppContext.BaseDirectory, "bin");
+            Directory.CreateDirectory(binDir);
+            string destPath = Path.Combine(binDir, $"git-hours{exe}");
+            File.Copy(builtPath, destPath, overwrite: true);
+
+            string pathEnv = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            if (Array.IndexOf(pathEnv.Split(Path.PathSeparator), binDir) < 0)
+            {
+                pathEnv = binDir + Path.PathSeparator + pathEnv;
+                Environment.SetEnvironmentVariable("PATH", pathEnv);
+            }
+        }
+        finally
+        {
+            try { Directory.Delete(tempDir, true); } catch { }
         }
 
         if (!CommandExists("git-hours"))
-            throw new Exception("git-hours CLI not found in PATH");
+            throw new Exception("git-hours CLI not found in PATH after build");
     }
 
     // Determine whether the given command exists on the current system
@@ -323,7 +350,7 @@ class Program
             };
             using var proc = Process.Start(psi);
             proc?.WaitForExit();
-            return proc != null && proc.ExitCode == 0;
+            return proc != null;
         }
         catch (Win32Exception) when (OperatingSystem.IsWindows())
         {
@@ -337,7 +364,7 @@ class Program
                 };
                 using var proc = Process.Start(psi);
                 proc?.WaitForExit();
-                return proc != null && proc.ExitCode == 0;
+                return proc != null;
             }
             catch
             {
