@@ -20,19 +20,19 @@ This repository's automated pipeline builds and validates the Org Coding Hours C
 
 ## Docker Image from the Packaged CLI
 
-The multi-stage `Dockerfile` first builds the CLI in a .NET SDK image and then copies the published output into a minimal runtime image:
+The `docker_build` job downloads the pre-published CLI and the `Dockerfile` simply copies those files into a minimal runtime image:
 
 ```Dockerfile
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-...
-RUN dotnet publish OrgCodingHoursCLI.csproj -c Release -o /app/out -r linux-x64 --self-contained true --no-restore
-...
-FROM node:14-slim AS final
-...
-COPY --from=build /app/out /app
+FROM node:14-slim
+ARG CLI_VERSION
+ENV ORG_CLI_VERSION=$CLI_VERSION
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git ca-certificates curl libkrb5-dev && rm -rf /var/lib/apt/lists/*
+RUN npm install -g git-hours@1.5.0
+COPY cli/ /app
 ```
 
-Using the published artifacts ensures that the Docker image contains the same tested CLI package.
+Because the CLI is built ahead of time, the Docker build no longer needs to contact external NuGet feeds.
 
 ## Deterministic Releases
 
