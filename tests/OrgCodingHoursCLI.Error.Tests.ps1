@@ -22,16 +22,20 @@ if (-not $script:cliExePath) {
 
 if ($IsWindows) { $script:cliExePath += ".exe" }
 
+$originalPath = "$env:PATH:/usr/local/go/bin:/usr/bin:/bin"
+
 Describe "OrgCodingHoursCLI Error Handling" {
 
     BeforeEach {
         # Ensure no required env vars are set and no leftover output
+        $env:PATH = $originalPath
         Remove-Item Env:REPOS -ErrorAction SilentlyContinue
         Remove-Item Env:GITHUB_OUTPUT -ErrorAction SilentlyContinue
         if (Test-Path "reports") { Remove-Item -Recurse -Force "reports" }
     }
     AfterEach {
         # Clean up after test
+        $env:PATH = $originalPath
         Remove-Item Env:REPOS -ErrorAction SilentlyContinue
         Remove-Item Env:GITHUB_OUTPUT -ErrorAction SilentlyContinue
         if (Test-Path "reports") { Remove-Item -Recurse -Force "reports" }
@@ -42,7 +46,7 @@ Describe "OrgCodingHoursCLI Error Handling" {
         Remove-Item Env:REPOS -ErrorAction SilentlyContinue
 
         # Act: Run the CLI without the required REPOS input, capturing any error output
-        $result = & $cliExePath 2>&1
+        $result = (& $cliExePath 2>&1) -join "`n"
         $exitCode = $LASTEXITCODE
 
         # Assert: The CLI should exit with an error (non-zero exit code)
@@ -53,7 +57,7 @@ Describe "OrgCodingHoursCLI Error Handling" {
 
     It "fails when repository slug is invalid" {
         $env:REPOS = "octocat/ThisRepoDoesNotExist"
-        $result = & $cliExePath 2>&1
+        $result = (& $cliExePath 2>&1) -join "`n"
         $LASTEXITCODE | Should -Not -Be 0
         $result | Should -Match "clone"
     }
@@ -67,8 +71,8 @@ echo fail >&2
 exit 1" -NoNewline
         chmod +x $scriptPath
         $env:PATH = "$fakeDir$(if($IsWindows){';'}else{':'})$env:PATH"
-        $env:REPOS = "octocat/Hello-World"
-        $result = & $cliExePath 2>&1
+        $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action"
+        $result = (& $cliExePath 2>&1) -join "`n"
         $LASTEXITCODE | Should -Not -Be 0
         $result | Should -Match "git-hours"
         Remove-Item -Recurse -Force $fakeDir
