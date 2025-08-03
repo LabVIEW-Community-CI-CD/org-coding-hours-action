@@ -1,10 +1,27 @@
 # Resolve the path to the OrgCodingHoursCLI executable (assumes the project is built)
-$repoRoot   = Split-Path -Path $PSScriptRoot -Parent
-$cliExePath = Join-Path $repoRoot "OrgCodingHoursCLI/bin/Release/net7.0/OrgCodingHoursCLI"
-if (-not (Test-Path $cliExePath)) {
-    $cliExePath = Join-Path $repoRoot "OrgCodingHoursCLI/bin/Debug/net7.0/OrgCodingHoursCLI"
+$repoRoot = Split-Path -Path $PSScriptRoot -Parent
+
+# Prefer net8.0 builds but fall back to net7.0 if present
+$candidatePaths = @(
+    "OrgCodingHoursCLI/bin/Release/net8.0/OrgCodingHoursCLI",
+    "OrgCodingHoursCLI/bin/Debug/net8.0/OrgCodingHoursCLI",
+    "OrgCodingHoursCLI/bin/Release/net7.0/OrgCodingHoursCLI",
+    "OrgCodingHoursCLI/bin/Debug/net7.0/OrgCodingHoursCLI"
+)
+
+foreach ($relativePath in $candidatePaths) {
+    $possible = Join-Path $repoRoot $relativePath
+    if (Test-Path $possible) {
+        Set-Variable -Name cliExePath -Value $possible -Scope Script
+        break
+    }
 }
-if ($IsWindows) { $cliExePath += ".exe" }
+
+if (-not $script:cliExePath) {
+    throw "Unable to locate OrgCodingHoursCLI executable. Please build the project."
+}
+
+if ($IsWindows) { $script:cliExePath += ".exe" }
 
 Describe "OrgCodingHoursCLI" {
 
