@@ -16,6 +16,9 @@ inputs:
     description: git-hours release tag to use.
     default: v0.1.2
     required: false
+  github_token:
+    description: GitHub token used to authenticate requests.
+    required: true
 outputs:
   aggregated_report:
     description: Path to the aggregated JSON report file
@@ -29,4 +32,4 @@ runs:
     WINDOW_START: ${{ inputs.window_start }}
     METRICS_BRANCH: ${{ inputs.metrics_branch }}
     GIT_HOURS_VERSION: ${{ inputs.git_hours_version }}
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    GITHUB_TOKEN: ${{ inputs.github_token }}
