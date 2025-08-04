@@ -10,11 +10,11 @@ ARG GIT_HOURS_VERSION
 LABEL org.opencontainers.image.version=$CLI_VERSION
 ENV ORG_CLI_VERSION=$CLI_VERSION
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git=1:2.39.2-1.1 \
-    ca-certificates=20230311 \
-    curl=7.88.1-10+deb12u6 \
-    libkrb5-dev=1.20.1-2+deb12u1 \
-    unzip=6.0-28 \
+    git \
+    ca-certificates \
+    curl \
+    libkrb5-dev \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=git-hours-builder /git-hours /usr/local/bin/git-hours
 RUN chmod +x /usr/local/bin/git-hours
