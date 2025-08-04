@@ -29,6 +29,8 @@ jobs:
         run: dotnet build OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release --no-restore
       - name: Run unit tests
         run: dotnet test OrgCodingHoursCLI.Tests/OrgCodingHoursCLI.Tests.csproj --no-restore
+      - name: Fetch git
+        run: ./scripts/fetch-git.sh
       - name: Pack CLI
         run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package -p:PackageVersion=${{ steps.version.outputs.cli_version }} --no-restore
       - name: Upload CLI artifact

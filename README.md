@@ -22,6 +22,8 @@ The CLI runs on Windows, macOS, and Linux. Regardless of platform, ensure the fo
 
 - `git`
 
+> The repository doesn't commit a `git` binary. During packaging, the build workflows run a script that downloads a pinned static `git` binary and places it under `tools/git/` for inclusion in the CLI's NuGet package.
+
 ## Inputs
 
 This action supports the following inputs:

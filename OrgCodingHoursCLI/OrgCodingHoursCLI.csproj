@@ -8,5 +8,8 @@
     <Deterministic>true</Deterministic>
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="../tools/git/git" Pack="true" PackagePath="tools/git/" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
 
