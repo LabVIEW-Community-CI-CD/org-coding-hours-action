@@ -197,7 +197,10 @@ class Program
         string token = Environment.GetEnvironmentVariable("GITHUB_TOKEN") ?? "";
         string repoSlug = Environment.GetEnvironmentVariable("GITHUB_REPOSITORY") ?? "";
         if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(repoSlug))
-            throw new Exception("GITHUB_TOKEN or GITHUB_REPOSITORY not set; cannot push to branch");
+        {
+            Console.Error.WriteLine("WARNING: GITHUB_TOKEN or GITHUB_REPOSITORY not set; skipping branch push");
+            return;
+        }
 
         string repoUrl = $"https://x-access-token:{token}@github.com/{repoSlug}.git";
         string cloneDir = Path.Combine(Path.GetTempPath(), "push_" + Guid.NewGuid());

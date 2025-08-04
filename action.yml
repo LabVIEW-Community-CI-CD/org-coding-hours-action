@@ -11,7 +11,6 @@ inputs:
   metrics_branch:
     description: Name of the branch to commit JSON reports to (if provided).
     required: false
-    default: metrics
   git_hours_version:
     description: git-hours release tag to use.
     default: v0.1.2

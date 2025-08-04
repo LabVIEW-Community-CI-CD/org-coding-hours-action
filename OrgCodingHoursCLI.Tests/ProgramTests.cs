@@ -129,5 +129,35 @@ public class ProgramTests
             Directory.Delete(src.FullName, true);
         }
     }
+
+    [Fact]
+    public void CommitToBranch_ReturnsWhenEnvMissing()
+    {
+        var cmds = new List<string>();
+        var originalRun = Program.RunCommandAction;
+        Program.RunCommandAction = (file, args, workDir) => cmds.Add($"{file} {args}");
+
+        var mi = typeof(Program).GetMethod("CommitToBranch", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+        var warn = new StringWriter();
+        var originalErr = Console.Error;
+        Console.SetError(warn);
+        try
+        {
+            Environment.SetEnvironmentVariable("GITHUB_TOKEN", null);
+            Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", null);
+            var dir = Directory.CreateDirectory(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()));
+            mi!.Invoke(null, new object[] { "test", dir.FullName });
+            Assert.Empty(cmds);
+            Assert.Contains("WARNING", warn.ToString());
+            Directory.Delete(dir.FullName, true);
+        }
+        finally
+        {
+            Program.RunCommandAction = originalRun;
+            Console.SetError(originalErr);
+            Environment.SetEnvironmentVariable("GITHUB_TOKEN", null);
+            Environment.SetEnvironmentVariable("GITHUB_REPOSITORY", null);
+        }
+    }
 }
 
