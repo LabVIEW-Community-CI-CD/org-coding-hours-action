@@ -97,6 +97,77 @@ jobs:
           path: reports/
 ```
 
+### CLI usage
+
+#### Run locally
+
+Build the CLI and execute it on your machine. The tool reads its configuration
+from environment variables:
+
+```bash
+dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o cli
+export REPOS="my-org/repo1 my-org/repo2"
+export WINDOW_START="2024-01-01"    # optional
+export METRICS_BRANCH="metrics"      # optional
+export GITHUB_TOKEN="ghp_..."        # needed for private repos
+./cli/OrgCodingHoursCLI
+```
+
+#### Run inside a workflow
+
+You can also invoke the published executable from a workflow step:
+
+```yaml
+jobs:
+  cli-example:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build CLI
+        run: dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o cli
+      - name: Run CLI
+        run: |
+          export REPOS="my-org/repo1 my-org/repo2"
+          export WINDOW_START="2024-01-01"
+          export METRICS_BRANCH="metrics"
+          ./cli/OrgCodingHoursCLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+### Docker usage
+
+#### Run locally
+
+Pull the published image and provide the required environment variables:
+
+```bash
+docker run --rm \
+  -e REPOS="my-org/repo1 my-org/repo2" \
+  -e GITHUB_TOKEN="$GITHUB_TOKEN" \
+  -e WINDOW_START="2024-01-01" \
+  -e METRICS_BRANCH="metrics" \
+  ghcr.io/labview-community-ci-cd/org-coding-hours-action:v0.1.0
+```
+
+Replace `v0.1.0` with the version defined in `version.props`.
+
+#### Run inside a workflow
+
+```yaml
+jobs:
+  docker-example:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Org Coding Hours via Docker
+        uses: docker://ghcr.io/labview-community-ci-cd/org-coding-hours-action:v0.1.0
+        env:
+          REPOS: my-org/repo1 my-org/repo2
+          WINDOW_START: "2024-01-01"
+          METRICS_BRANCH: metrics
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
 ### Using a different git-hours version
 
 The Docker image includes `git-hours` built from its latest tagged release. To use another revision, rebuild the Docker image with a different `GIT_HOURS_VERSION` build argument or provide your own `git-hours` binary.
