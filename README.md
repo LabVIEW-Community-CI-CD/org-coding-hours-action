@@ -85,6 +85,7 @@ jobs:
       - name: Run Org Coding Hours Action
         uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v7
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           repos: ${{ github.event.inputs.repos }}
           window_start: ${{ github.event.inputs.window_start }}
           # metrics_branch: metrics    # (optional) enable branch push for JSON
