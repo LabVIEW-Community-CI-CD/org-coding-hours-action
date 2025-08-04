@@ -150,7 +150,7 @@ docker run --rm \
   ghcr.io/labview-community-ci-cd/org-coding-hours-action:v0.1.0
 ```
 
-Replace `v0.1.0` with the version defined in `version.props`.
+Replace `v0.1.0` with the desired release tag.
 
 #### Run inside a workflow
 

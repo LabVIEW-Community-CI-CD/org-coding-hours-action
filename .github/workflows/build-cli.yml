@@ -20,9 +20,22 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.302'
-      - name: Extract version
+      - name: Determine version from ref
         id: version
-        run: echo "cli_version=$(grep -oP '(?<=<Version>).*?(?=</Version>)' version.props)" >> $GITHUB_OUTPUT
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION="0.0.0"
+          fi
+          echo "cli_version=$VERSION" >> "$GITHUB_OUTPUT"
+          cat <<EOF > version.props
+<Project>
+  <PropertyGroup>
+    <Version>$VERSION</Version>
+  </PropertyGroup>
+</Project>
+EOF
       - name: Restore
         run: |
           dotnet restore OrgCodingHoursCLI/OrgCodingHoursCLI.csproj --locked-mode
