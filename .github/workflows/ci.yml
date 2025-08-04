@@ -17,11 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.302'
       - name: Restore
         run: dotnet restore OrgCodingHoursCLI/OrgCodingHoursCLI.csproj --locked-mode
+      - name: Fetch git
+        run: ./scripts/fetch-git.sh
       - name: Pack CLI
         run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package --no-restore
       - name: Execute action against sample repos
@@ -35,7 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.302'
       - name: Restore
@@ -46,6 +48,8 @@ jobs:
         run: dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release --no-restore
       - name: Run unit tests
         run: dotnet test OrgCodingHoursCLI.Tests/OrgCodingHoursCLI.Tests.csproj --no-restore
+      - name: Fetch git
+        run: ./scripts/fetch-git.sh
       - name: Pack CLI
         run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package --no-restore
       - name: Cache PowerShell modules
