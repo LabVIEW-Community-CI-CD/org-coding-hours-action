@@ -30,7 +30,7 @@ jobs:
             VERSION="0.0.0"
           fi
           echo "cli_version=$VERSION" >> "$GITHUB_OUTPUT"
-          cat <<EOF > version.props
+          cat <<'EOF' > version.props
           <Project>
             <PropertyGroup>
               <Version>$VERSION</Version>
