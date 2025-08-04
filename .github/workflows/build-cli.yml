@@ -30,12 +30,12 @@ jobs:
           fi
           echo "cli_version=$VERSION" >> "$GITHUB_OUTPUT"
           cat <<EOF > version.props
-<Project>
-  <PropertyGroup>
-    <Version>$VERSION</Version>
-  </PropertyGroup>
-</Project>
-EOF
+          <Project>
+            <PropertyGroup>
+              <Version>$VERSION</Version>
+            </PropertyGroup>
+          </Project>
+          EOF
       - name: Restore
         run: |
           dotnet restore OrgCodingHoursCLI/OrgCodingHoursCLI.csproj --locked-mode
