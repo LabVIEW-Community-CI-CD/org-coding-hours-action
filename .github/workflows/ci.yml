@@ -93,6 +93,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set lowercase repository name
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -101,5 +103,5 @@ jobs:
           build-args: |
             CLI_VERSION=${{ needs.build_cli.outputs.cli_version }}
           tags: |
-            ghcr.io/${{ github.repository }}:${{ needs.build_cli.outputs.cli_version }}
-            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ env.REPO_LC }}:${{ needs.build_cli.outputs.cli_version }}
+            ghcr.io/${{ env.REPO_LC }}:${{ github.sha }}

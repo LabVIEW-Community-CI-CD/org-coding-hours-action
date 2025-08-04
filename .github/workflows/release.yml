@@ -32,6 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Set lowercase repository name
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
       - uses: actions/download-artifact@v4
         with:
           name: cli-package
@@ -39,6 +41,6 @@ jobs:
       - name: Log in to ghcr
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build image
-        run: docker build --build-arg CLI_VERSION=${{ needs.build_cli.outputs.cli_version }} -t ghcr.io/${{ github.repository }}:${{ needs.build_cli.outputs.cli_version }} .
+        run: docker build --build-arg CLI_VERSION=${{ needs.build_cli.outputs.cli_version }} -t ghcr.io/$REPO_LC:${{ needs.build_cli.outputs.cli_version }} .
       - name: Push image
-        run: docker push ghcr.io/${{ github.repository }}:${{ needs.build_cli.outputs.cli_version }}
+        run: docker push ghcr.io/$REPO_LC:${{ needs.build_cli.outputs.cli_version }}
