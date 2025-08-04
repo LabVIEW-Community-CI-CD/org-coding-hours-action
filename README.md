@@ -5,15 +5,14 @@
 
 ## Overview
 
-**Org Coding Hours** is a GitHub Action that aggregates **per-contributor coding hours** across one or more repositories. It uses the [`git-hours`](https://github.com/trinhminhtriet/git-hours) utility to estimate how many hours each contributor has spent (based on commit timestamps), and produces JSON summary reports. Optionally, it can also generate a **static HTML dashboard** and publish both the JSON metrics and the site to dedicated branches (for example, to host on GitHub Pages). This action is ideal for tracking contributor effort across multiple projects in an organization, whether for open-source volunteer tracking or internal metrics.
+**Org Coding Hours** is a GitHub Action that aggregates **per-contributor coding hours** across one or more repositories. It uses the [`git-hours`](https://github.com/trinhminhtriet/git-hours) utility to estimate how many hours each contributor has spent (based on commit timestamps) and produces JSON summary reports. Optionally, it can also commit these metrics to a dedicated branch for archival or further processing. This action is ideal for tracking contributor effort across multiple projects in an organization, whether for open-source volunteer tracking or internal metrics.
 
 Key features and benefits:
 
 - **Aggregate commit hours across repos** – Analyze one repository or an entire org (supports wildcards like `my-org/*`). The action outputs a combined **organization-wide report** as well as per-repository breakdowns.
 - **Works with private repos** – Private repositories are supported. The action will use the provided `GITHUB_TOKEN` (or a supplied PAT) to authenticate `git` clones via HTTPS for private repositories.
 - **Includes `git-hours`** – The Docker image bundles a prebuilt `git-hours` binary. The CLI expects this binary to be present and fails fast if it is missing.
-- **Flexible output** – Use the JSON reports directly (e.g. for further processing or archival), or generate a lightweight **dashboard** to visualize commit hours and commits per contributor. You can let the action publish the results to your repository (in a metrics branch and a Pages branch) or handle the publishing in a separate workflow job.
-- **Seamless GitHub Pages integration** – When configured, the action can push a static site with the latest metrics to a Pages branch (e.g. `gh-pages`), eliminating the need for a separate site generation workflow.
+- **Flexible output** – Use the JSON reports directly (e.g. for further processing or archival), or commit them to a dedicated metrics branch for later use, such as building dashboards in a separate workflow.
 - **Deterministic and automated releases** – This repository follows semantic versioning for tags (e.g. `v7`, `v7.0.0`). Releases are automated via GitHub Actions: when a new version is prepared, a Git tag is created and a GitHub Release is published using the GitHub CLI with `--generate-notes` to auto-generate the changelog. Dependencies are locked via `packages.lock.json`, and CI restores in locked mode for repeatable builds. (See [Release Process](#release-process) for details.)
 
 ### Prerequisites
@@ -33,10 +32,9 @@ This action supports the following inputs:
 | `repos`          | **Yes**      | *(none)*      | List of repositories to process, in `owner/repo` format. Separate multiple entries with spaces or newlines. Supports wildcards (e.g. `my-org/*` for all repositories in an organization). **Each repository listed will be cloned and analyzed**. |
 | `window_start`   | No           | *(none)*      | Optional start date (`YYYY-MM-DD`) for the reporting window. Commits before this date will be ignored. If not set, the default is effectively “30 days ago” (as determined by the `git-hours` tool). Use this to limit the metrics to a recent timeframe (e.g. quarterly reports). |
 | `metrics_branch` | No           | `metrics`     | Name of the branch where JSON report snapshots should be committed. If provided, the action will commit the contents of the `reports/` directory to this branch. If this branch doesn’t exist, it will be created. *(Tip: use a dedicated branch like `metrics` to keep data separate from code.)* |
-| `pages_branch`   | No           | *(none)*      | Name of the branch for the static website. If set **along with** `metrics_branch`, the action will generate a dashboard under a `site/` directory and commit it to this branch (enabling GitHub Pages hosting). Typically set this to `gh-pages`. If not set, no site will be generated or published. |
 | `git_hours_version` | No       | `v0.1.2`      | Version tag of the **git-hours** CLI to use. By default, a known stable version is included. You can override this to use a specific release of `git-hours`. |
 
-> **Note:** All inputs are strings. If an input is left at default (e.g. `pages_branch` not provided), that feature is disabled as described above.
+> **Note:** All inputs are strings.
 
 ## Outputs
 
@@ -51,18 +49,8 @@ In addition to outputs, the action writes files to the workspace in a structured
 reports/
 ├─ git-hours-aggregated-YYYY-MM-DD.json    # Aggregated report (all repos combined)
 ├─ git-hours-<repo_slug1>-YYYY-MM-DD.json  # Individual repo report (one per repo)
-├─ git-hours-<repo_slug2>-YYYY-MM-DD.json  
+├─ git-hours-<repo_slug2>-YYYY-MM-DD.json
 └─ ... (etc., one JSON file for each repository)
-```
-
-If a dashboard site is generated (when `pages_branch` is set), the site files are placed in a `site/` directory:
-
-```text
-site/
-├─ index.html             # Dashboard homepage (summary and tables)
-├─ git-hours-latest.json  # Copy of the latest aggregated JSON (for dynamic or external use)
-└─ data/
-    └─ *.json             # Historical JSON snapshots (each run’s aggregated report, including the latest)
 ```
 
 Each JSON report (per repo or aggregated) contains a `"total"` object with total hours and commits, and then one entry per contributor (keyed by email or username) with their own hours and commit count.
@@ -85,8 +73,8 @@ on:
         required: false
 
 permissions:
-  contents: write   # required for pushing to branches (metrics/pages)
-  # pages: write    # (only if using Pages deployment action separately)
+  contents: write   # required for pushing to the metrics branch
+  # pages: write    # (only if publishing a site in a separate job)
 
 jobs:
   report:
@@ -100,7 +88,6 @@ jobs:
           repos: ${{ github.event.inputs.repos }}
           window_start: ${{ github.event.inputs.window_start }}
           # metrics_branch: metrics    # (optional) enable branch push for JSON
-          # pages_branch: gh-pages     # (optional) enable Pages dashboard
 
       - name: Upload JSON reports
         uses: actions/upload-artifact@v4
@@ -113,27 +100,9 @@ jobs:
 
 The Docker image includes `git-hours` built from its latest tagged release. To use another revision, rebuild the Docker image with a different `GIT_HOURS_VERSION` build argument or provide your own `git-hours` binary.
 
-### Publishing the Dashboard
+### Publishing a Dashboard
 
-There are two ways to publish the static HTML dashboard with the results:
-
-- **Let the action handle it (automatic):** If you specify both `metrics_branch` and `pages_branch` inputs, the action will take care of committing the JSON files to the `metrics_branch` and generating the site in `site/` and committing it to `pages_branch`. No extra jobs are required in your workflow. For example, you could add to the above step:
-
-  ```yaml
-        with:
-          repos: ${{ github.event.inputs.repos }}
-          window_start: ${{ github.event.inputs.window_start }}
-          metrics_branch: metrics    # branch to store JSON reports
-          pages_branch: gh-pages     # branch to publish the site
-  ```
-
-  With those inputs, the action will push commits to the `metrics` branch (containing the JSON under a `reports/` folder) and to the `gh-pages` branch (containing the `site/` dashboard). Ensure the `GITHUB_TOKEN` or PAT in use has permission to push to those branches. Once the Pages branch is updated, if GitHub Pages is configured for that branch, the site will be available (for example, at `https://<your-org>.github.io/<your-repo>/`).
-
-- **Handle it in workflow jobs (manual):** If you prefer more control or to integrate with an existing documentation site, you can run the action to produce JSON (without setting `pages_branch`), then generate or integrate the site in a separate job. For example, you might have a first job that runs the action and uploads the JSON artifact, and a second job that downloads this artifact, runs a custom script to build a webpage (or uses the same logic as this action’s site generator), and then deploys it (perhaps via the official `actions/upload-pages-artifact` and `actions/deploy-pages` actions). This manual approach is useful if you want to customize the HTML or combine the data with other metrics.
-
-Both approaches achieve the same outcome: a JSON record of coding hours and an optional live dashboard. The automatic mode is simpler if you’re happy with the default dashboard and want a quick setup. The manual mode is there if you need flexibility.
-
-> **Tip:** If you use the automatic publishing (setting `metrics_branch`/`pages_branch`), you typically do **not** need to include an `actions/upload-artifact` step for the JSON, since the data is already preserved in the repository branches. However, you may still upload it as an artifact if you want a backup or to use the data outside GitHub.
+This action only produces JSON reports. If you want to publish a static site or dashboard, add steps in your workflow to build and deploy it (for example, by using a separate job with GitHub Pages). The `metrics_branch` input can push the `reports/` directory to a branch for later consumption, or you can upload the reports as an artifact for another job to use.
 
 ## Release Process
 
@@ -151,7 +120,7 @@ For details on how the CLI is built and tested, how the packaged executable feed
 ## Additional Notes and Best Practices
 
 - **Runner requirements:** This action runs inside a Docker container and thus **requires a Linux runner** (e.g., `ubuntu-latest`). Ensure your workflow uses an appropriate runner, as Windows and macOS runners are not supported for container actions.
-- **Authentication and permissions:** If you are analyzing private repositories, make sure the job’s GITHUB_TOKEN has access to those repos. In an organization, the default token usually has access to org repositories, but in some cases (forked repositories or when using a fine-grained PAT) you may need to supply a Personal Access Token with `repo` scope and pass it to the action (e.g., via an input or as the `GITHUB_TOKEN` env override). The action automatically uses the `GITHUB_TOKEN` environment variable for git clone authentication. Also, if using the branch-push features (`metrics_branch`/`pages_branch`), the token must have **write permission** to contents (and to Pages, if publishing a Pages branch). On forked repositories, GitHub’s default token has read-only permissions, so you’ll need to explicitly enable workflow permissions or use your own PAT.
+- **Authentication and permissions:** If you are analyzing private repositories, make sure the job’s GITHUB_TOKEN has access to those repos. In an organization, the default token usually has access to org repositories, but in some cases (forked repositories or when using a fine-grained PAT) you may need to supply a Personal Access Token with `repo` scope and pass it to the action (e.g., via an input or as the `GITHUB_TOKEN` env override). The action automatically uses the `GITHUB_TOKEN` environment variable for git clone authentication. If using the branch-push feature (`metrics_branch`), the token must have **write permission** to contents. On forked repositories, GitHub’s default token has read-only permissions, so you’ll need to explicitly enable workflow permissions or use your own PAT.
 - **Graceful failure behavior:** The action is designed to fail fast if something goes wrong (it will exit with an error if any repository cannot be cloned or if the `git-hours` tool encounters an issue). This will mark the step as failed, preventing later steps from using incomplete data. If no commits are found within the `window_start` range (resulting in zero hours), the JSON reports will still be generated (with totals of 0 hours) rather than causing a failure. In other words, an “empty” result is considered a successful run (the absence of a `reports/` directory would indicate a failure earlier in the process). If you want to handle a “no data” scenario more gracefully, you can add a check in your workflow after the action step. For example, you might include a step to verify that the `reports/` directory exists (and perhaps contains the expected files) before trying to upload or use them.
 - **Pinned tool versions:** The action pins the `git-hours` tool version by default (v0.1.2) to ensure consistent behavior. You can override `git_hours_version` if a new version of the tool is released and you want to try it, but note that the Docker image must include or install that version for the change to take effect.
 - **Performance considerations:** Analyzing many repositories can take several minutes, especially with large commit histories. Consider narrowing the `window_start` or running the action on a scheduled workflow (e.g., weekly) for long-term tracking.

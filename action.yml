@@ -12,9 +12,6 @@ inputs:
     description: Name of the branch to commit JSON reports to (if provided).
     required: false
     default: metrics
-  pages_branch:
-    description: Name of the branch to publish the static site to (requires metrics_branch as well).
-    required: false
   git_hours_version:
     description: git-hours release tag to use.
     default: v0.1.2
@@ -31,6 +28,5 @@ runs:
     REPOS: ${{ inputs.repos }}
     WINDOW_START: ${{ inputs.window_start }}
     METRICS_BRANCH: ${{ inputs.metrics_branch }}
-    PAGES_BRANCH: ${{ inputs.pages_branch }}
     GIT_HOURS_VERSION: ${{ inputs.git_hours_version }}
     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
