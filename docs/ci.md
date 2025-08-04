@@ -55,3 +55,13 @@ Because the CLI is built ahead of time, the Docker build no longer needs to cont
 - Release workflows create signed Git tags and use `gh release create --generate-notes`, producing notes directly from commit history.
 - Base images (`golang:1.24`, `mcr.microsoft.com/dotnet/runtime:8.0`) are pinned by digest, and the bundled `git-hours` version is locked to a specific release, so image contents remain predictable.
 - Every release references a specific tagged commit, allowing users to pin the action to an exact version for repeatable results.
+
+## Automated Releases
+
+Pushing changes to the `main` branch triggers the release workflow, which:
+
+- Builds and tests the CLI.
+- Publishes the NuGet package and Docker image.
+- Creates a version tag and GitHub release if one does not already exist.
+
+This end-to-end automation removes the need for manual tagging or release steps.
