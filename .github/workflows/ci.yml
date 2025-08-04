@@ -67,32 +67,8 @@ jobs:
           Invoke-Pester
 
   build_cli:
-    runs-on: ubuntu-latest
     name: Build and test CLI
-    outputs:
-      cli_version: ${{ steps.version.outputs.cli_version }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v3
-        with:
-          dotnet-version: '8.0.x'
-      - name: Extract version
-        id: version
-        run: echo "cli_version=$(grep -oP '(?<=<Version>).*?(?=</Version>)' version.props)" >> $GITHUB_OUTPUT
-      - name: Restore
-        run: dotnet restore OrgCodingHoursCLI/OrgCodingHoursCLI.csproj
-      - name: Build
-        run: dotnet build OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release --no-restore
-      - name: Run unit tests
-        run: dotnet test OrgCodingHoursCLI.Tests/OrgCodingHoursCLI.Tests.csproj
-      - name: Pack CLI
-        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package -p:PackageVersion=${{ steps.version.outputs.cli_version }}
-      - name: Upload CLI artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cli-package
-          path: package/*.nupkg
+    uses: ./.github/workflows/build-cli.yml
 
   docker_build:
     runs-on: ubuntu-latest
