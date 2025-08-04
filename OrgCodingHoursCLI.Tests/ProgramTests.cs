@@ -28,7 +28,8 @@ public class ProgramTests
     }
 
     [Theory]
-    [InlineData("octocat/Hello-World", "octocat_Hello-World")]
+    [InlineData("ni/labview-icon-editor", "ni_labview-icon-editor")]
+    [InlineData("ni/open-source", "ni_open-source")]
     [InlineData("Repo With Spaces", "Repo_With_Spaces")]
     [InlineData("name%with$chars", "name_with_chars")]
     public void Slugify_ReplacesSpecialCharacters(string input, string expected)

@@ -42,7 +42,7 @@ Describe "OrgCodingHoursCLI" {
 
         It "runs successfully and generates a JSON report for the repository" {
             # Arrange
-            $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action"  # Use the action's own repo as input
+            $env:REPOS = "ni/labview-icon-editor"  # Use a sample repo as input
 
             # Act
             $null = & $cliExePath   # Execute the CLI (suppress direct console output)
@@ -57,8 +57,8 @@ Describe "OrgCodingHoursCLI" {
             $aggReportFiles = Get-ChildItem -Path "reports" -Filter "*aggregated*.json"
             $aggReportFiles | Should -Not -BeNullOrEmpty   # aggregated report file exists
 
-            # There should be an individual repo JSON report file for the repo (slug: LabVIEW-Community-CI-CD_org-coding-hours-action)
-            $repoReportFiles = Get-ChildItem -Path "reports" -Filter "*LabVIEW-Community-CI-CD_org-coding-hours-action*.json"
+            # There should be an individual repo JSON report file for the repo (slug: ni_labview-icon-editor)
+            $repoReportFiles = Get-ChildItem -Path "reports" -Filter "*ni_labview-icon-editor*.json"
             $repoReportFiles | Should -Not -BeNullOrEmpty  # individual repo report exists
 
             # Load and inspect the aggregated JSON content
@@ -86,7 +86,7 @@ Describe "OrgCodingHoursCLI" {
 
         It "writes GitHub Actions outputs for aggregated_report and repo_slug" {
             # Arrange
-              $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action"
+              $env:REPOS = "ni/labview-icon-editor"
             # Simulate GitHub Actions output capturing by using a temporary file
             $tempOutputFile = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString() + ".txt")
             $env:GITHUB_OUTPUT = $tempOutputFile
@@ -110,7 +110,7 @@ Describe "OrgCodingHoursCLI" {
             $outputSlug = $Matches[1]
 
             # The repo_slug output should be a slugified identifier of the repo list
-              $outputSlug | Should -Be 'LabVIEW-Community-CI-CD_org-coding-hours-action'   # expected slug for action repo
+              $outputSlug | Should -Be 'ni_labview-icon-editor'   # expected slug for sample repo
             # The aggregated_report output should point to an existing JSON file in the workspace
             Test-Path $outputPath | Should -Be $true
             # (Optional) Verify the pointed JSON file has a 'total' field (basic sanity check on content)
@@ -120,7 +120,7 @@ Describe "OrgCodingHoursCLI" {
 
         Context "WINDOW_START filtering" {
             It "includes commits when WINDOW_START is before history" {
-                $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action"
+                $env:REPOS = "ni/labview-icon-editor"
                 $env:WINDOW_START = "1970-01-01"
                 $null = & $cliExePath
                 $LASTEXITCODE | Should -Be 0
@@ -128,7 +128,7 @@ Describe "OrgCodingHoursCLI" {
                 $agg.total.commits | Should -BeGreaterThan 0
             }
             It "produces zero commits when WINDOW_START is after last commit" {
-                $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action"
+                $env:REPOS = "ni/labview-icon-editor"
                 $env:WINDOW_START = "2999-01-01"
                 $null = & $cliExePath
                 $agg = Get-Content -Raw -Path (Get-ChildItem reports/*aggregated*.json).FullName | ConvertFrom-Json
@@ -138,22 +138,22 @@ Describe "OrgCodingHoursCLI" {
 
         Context "Multiple repositories" {
             It "aggregates results and concatenates slugs" {
-                  $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action octocat/Spoon-Knife"
+                  $env:REPOS = "ni/labview-icon-editor ni/open-source"
                 $tempOutputFile = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString() + ".txt")
                 $env:GITHUB_OUTPUT = $tempOutputFile
                 $null = & $cliExePath
                 $LASTEXITCODE | Should -Be 0
                 $files = Get-ChildItem reports -Filter "*.json"
                 ($files | Where-Object { $_.Name -like '*aggregated*' }).Count | Should -Be 1
-                  ($files | Where-Object { $_.Name -like '*LabVIEW-Community-CI-CD_org-coding-hours-action*' }).Count | Should -Be 1
-                  ($files | Where-Object { $_.Name -like '*octocat_Spoon-Knife*' }).Count | Should -Be 1
+                  ($files | Where-Object { $_.Name -like '*ni_labview-icon-editor*' }).Count | Should -Be 1
+                  ($files | Where-Object { $_.Name -like '*ni_open-source*' }).Count | Should -Be 1
                   $agg = Get-Content -Raw -Path (Get-ChildItem reports/*aggregated*.json).FullName | ConvertFrom-Json
-                  $r1 = Get-Content -Raw -Path (Get-ChildItem reports/*LabVIEW-Community-CI-CD_org-coding-hours-action*.json).FullName | ConvertFrom-Json
-                  $r2 = Get-Content -Raw -Path (Get-ChildItem reports/*octocat_Spoon-Knife*.json).FullName | ConvertFrom-Json
+                  $r1 = Get-Content -Raw -Path (Get-ChildItem reports/*ni_labview-icon-editor*.json).FullName | ConvertFrom-Json
+                  $r2 = Get-Content -Raw -Path (Get-ChildItem reports/*ni_open-source*.json).FullName | ConvertFrom-Json
                   $agg.total.commits | Should -Be ($r1.total.commits + $r2.total.commits)
                   $outLines = Get-Content -Path $tempOutputFile
                   ($outLines | Where-Object { $_ -like 'repo_slug=*' }) -match 'repo_slug=(.+)' | Out-Null
-                  $Matches[1] | Should -Be 'LabVIEW-Community-CI-CD_org-coding-hours-action-octocat_Spoon-Knife'
+                  $Matches[1] | Should -Be 'ni_labview-icon-editor-ni_open-source'
             }
         }
 

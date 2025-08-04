@@ -16,18 +16,26 @@ jobs:
     name: Run Docker action on sample repo
     steps:
       - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
       - name: Pack CLI
         run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package
-      - name: Execute action against Hello-World
+      - name: Execute action against sample repos
         uses: ./
         with:
-          repos: LabVIEW-Community-CI-CD/org-coding-hours-action
+          repos: ni/labview-icon-editor ni/open-source
 
   pester-tests:
     runs-on: ubuntu-latest
     name: Run Pester tests for CLI
     steps:
       - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
       - name: Publish CLI
         run: dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release
       - name: Run unit tests
@@ -78,29 +86,6 @@ jobs:
         run: dotnet build OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release --no-restore
       - name: Run unit tests
         run: dotnet test OrgCodingHoursCLI.Tests/OrgCodingHoursCLI.Tests.csproj
-      - name: Cache PowerShell modules
-        uses: actions/cache@v4
-        with:
-          path: tools/Modules
-          key: ${{ runner.os }}-psmodules-pester-5.5.0
-      - name: Install Pester
-        shell: pwsh
-        run: |
-          $modulePath = Join-Path $PWD 'tools/Modules'
-          if (-not (Test-Path (Join-Path $modulePath 'Pester' '5.5.0'))) {
-            Save-Module -Name Pester -RequiredVersion 5.5.0 -Path $modulePath -Force
-          }
-          $env:PSModulePath = "$modulePath" + [IO.Path]::PathSeparator + $env:PSModulePath
-          "PSModulePath=$env:PSModulePath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-      - name: Upload Pester module
-        uses: actions/upload-artifact@v4
-        with:
-          name: pester-module
-          path: tools/Modules/Pester/5.5.0
-      - name: Run Pester tests
-        shell: pwsh
-        run: |
-          Invoke-Pester
       - name: Pack CLI
         run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package -p:PackageVersion=${{ steps.version.outputs.cli_version }}
       - name: Upload CLI artifact

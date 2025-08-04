@@ -5,13 +5,13 @@
 
 ## Overview
 
-**Org Coding Hours** is a GitHub Action that aggregates **per-contributor coding hours** across one or more repositories. It uses the [`git-hours`](https://github.com/kimmobrunfeldt/git-hours) utility to estimate how many hours each contributor has spent (based on commit timestamps), and produces JSON summary reports. Optionally, it can also generate a **static HTML dashboard** and publish both the JSON metrics and the site to dedicated branches (for example, to host on GitHub Pages). This action is ideal for tracking contributor effort across multiple projects in an organization, whether for open-source volunteer tracking or internal metrics.
+**Org Coding Hours** is a GitHub Action that aggregates **per-contributor coding hours** across one or more repositories. It uses the [`git-hours`](https://github.com/trinhminhtriet/git-hours) utility to estimate how many hours each contributor has spent (based on commit timestamps), and produces JSON summary reports. Optionally, it can also generate a **static HTML dashboard** and publish both the JSON metrics and the site to dedicated branches (for example, to host on GitHub Pages). This action is ideal for tracking contributor effort across multiple projects in an organization, whether for open-source volunteer tracking or internal metrics.
 
 Key features and benefits:
 
 - **Aggregate commit hours across repos** – Analyze one repository or an entire org (supports wildcards like `my-org/*`). The action outputs a combined **organization-wide report** as well as per-repository breakdowns.
 - **Works with private repos** – Private repositories are supported. The action will use the provided `GITHUB_TOKEN` (or a supplied PAT) to authenticate `git` clones via HTTPS for private repositories.
-- **Builds `git-hours` from source** – The CLI fetches and compiles the `git-hours` utility on-the-fly, letting you target any tag or commit. This requires a Go toolchain to be available.
+- **Includes `git-hours`** – The Docker image bundles a prebuilt `git-hours` binary from the upstream project and can rebuild it from source when a Go toolchain is available.
 - **Flexible output** – Use the JSON reports directly (e.g. for further processing or archival), or generate a lightweight **dashboard** to visualize commit hours and commits per contributor. You can let the action publish the results to your repository (in a metrics branch and a Pages branch) or handle the publishing in a separate workflow job.
 - **Seamless GitHub Pages integration** – When configured, the action can push a static site with the latest metrics to a Pages branch (e.g. `gh-pages`), eliminating the need for a separate site generation workflow.
 - **Deterministic and automated releases** – This repository follows semantic versioning for tags (e.g. `v7`, `v7.0.0`). Releases are automated via GitHub Actions: when a new version is prepared, a Git tag is created and a GitHub Release is published using the GitHub CLI with `--generate-notes` to auto-generate the changelog. (See [Release Process](#release-process) for details.)
@@ -21,7 +21,7 @@ Key features and benefits:
 The CLI runs on Windows, macOS, and Linux. Regardless of platform, ensure the following are available:
 
 - `git`
-- A working Go toolchain
+- (Optional) Go toolchain – required only if rebuilding `git-hours` from source
 - Network access to the `git-hours` source repository
 
 ## Inputs
@@ -111,7 +111,7 @@ jobs:
 
 ### Using a different git-hours version
 
-By default, the CLI builds the `git-hours` tool from its latest tagged release. To use another revision, set the `GIT_HOURS_VERSION` environment variable (or the `git_hours_version` action input) to a Git tag or commit SHA. The CLI will clone the `git-hours` repository at that reference and run `go build` before analyzing repositories.
+The Docker image includes `git-hours` built from its latest tagged release. To use another revision, rebuild the Docker image with a different `GIT_HOURS_VERSION` build argument or provide your own `git-hours` binary.
 
 ### Publishing the Dashboard
 
@@ -147,23 +147,6 @@ For details on how the CLI is built and tested, how the packaged executable feed
 - **Deterministic outputs:** Every release of the action is a specific tagged commit, so your workflows should reference the action with a version tag (for example, `uses: LabVIEW-Community-CI-CD/org-coding-hours-action@v7`). Using pinned versions guarantees that your CI runs are repeatable and aren’t unexpectedly changed by new updates. (You can always upgrade to a newer version intentionally by updating the tag.)
 
 *(For contributors: if you contribute to this action, the maintainers will handle the tagging and release process. Simply follow conventional commit guidelines (using `feat:`, `fix:`, etc. in commit messages) to help the release notes generation.)*
-
-### Regenerating the git-hours binary
-
-This action includes a prebuilt `git-hours` binary (located in `docker-action/bin/git-hours`). When upstream `git-hours` releases a new version, regenerate this file by:
-
-1. Installing Go 1.24.
-2. Cloning and building the desired tag:
-
-   ```bash
-   git clone --depth 1 --branch <tag> https://github.com/trinhminhtriet/git-hours.git
-   sed -i 's/go 1.24.1/go 1.24/' git-hours/go.mod
-   (cd git-hours && go install .)
-   ```
-
-3. Copying the resulting `git-hours` executable from `$(go env GOBIN)` into `docker-action/bin/git-hours` and committing the change.
-
-This keeps the Docker image in sync with upstream `git-hours` releases.
 
 ## Additional Notes and Best Practices
 
