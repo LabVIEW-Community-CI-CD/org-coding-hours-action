@@ -34,11 +34,11 @@ ARG CLI_VERSION
 ARG GIT_HOURS_VERSION
 ENV ORG_CLI_VERSION=$CLI_VERSION
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git=1:2.39.2-1.1 \
-    ca-certificates=20230311 \
-    curl=7.88.1-10+deb12u6 \
-    libkrb5-dev=1.20.1-2+deb12u1 \
-    unzip=6.0-28 \
+    git \
+    ca-certificates \
+    curl \
+    libkrb5-dev \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=git-hours-builder /git-hours /usr/local/bin/git-hours
 COPY package/OrgCodingHoursCLI*.nupkg /tmp/OrgCodingHoursCLI.nupkg
@@ -53,5 +53,5 @@ Because the CLI is built ahead of time, the Docker build no longer needs to cont
 ## Deterministic Releases
 
 - Release workflows create signed Git tags and use `gh release create --generate-notes`, producing notes directly from commit history.
-- Base images (`golang:1.24`, `mcr.microsoft.com/dotnet/runtime:8.0`) are pinned by digest, and required APT packages and the bundled `git-hours` version are locked to exact versions, so image contents do not change unexpectedly.
+- Base images (`golang:1.24`, `mcr.microsoft.com/dotnet/runtime:8.0`) are pinned by digest, and the bundled `git-hours` version is locked to a specific release, so image contents remain predictable.
 - Every release references a specific tagged commit, allowing users to pin the action to an exact version for repeatable results.
