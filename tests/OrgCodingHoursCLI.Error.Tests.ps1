@@ -71,7 +71,7 @@ echo fail >&2
 exit 1" -NoNewline
         chmod +x $scriptPath
         $env:PATH = "$fakeDir$(if($IsWindows){';'}else{':'})$env:PATH"
-        $env:REPOS = "LabVIEW-Community-CI-CD/org-coding-hours-action"
+        $env:REPOS = "ni/labview-icon-editor"
         $result = (& $cliExePath 2>&1) -join "`n"
         $LASTEXITCODE | Should -Not -Be 0
         $result | Should -Match "git-hours"
