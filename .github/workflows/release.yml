@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build_cli:
-    uses: ./.github/workflows/ci.yml#build_cli
+    uses: ./.github/workflows/build-cli.yml
     secrets: inherit
 
   publish_cli:
