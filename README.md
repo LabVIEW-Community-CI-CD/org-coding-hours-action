@@ -11,18 +11,16 @@ Key features and benefits:
 
 - **Aggregate commit hours across repos** – Analyze one repository or an entire org (supports wildcards like `my-org/*`). The action outputs a combined **organization-wide report** as well as per-repository breakdowns.
 - **Works with private repos** – Private repositories are supported. The action will use the provided `GITHUB_TOKEN` (or a supplied PAT) to authenticate `git` clones via HTTPS for private repositories.
-- **Includes `git-hours`** – The Docker image bundles a prebuilt `git-hours` binary from the upstream project and can rebuild it from source when a Go toolchain is available.
+- **Includes `git-hours`** – The Docker image bundles a prebuilt `git-hours` binary. The CLI expects this binary to be present and fails fast if it is missing.
 - **Flexible output** – Use the JSON reports directly (e.g. for further processing or archival), or generate a lightweight **dashboard** to visualize commit hours and commits per contributor. You can let the action publish the results to your repository (in a metrics branch and a Pages branch) or handle the publishing in a separate workflow job.
 - **Seamless GitHub Pages integration** – When configured, the action can push a static site with the latest metrics to a Pages branch (e.g. `gh-pages`), eliminating the need for a separate site generation workflow.
-- **Deterministic and automated releases** – This repository follows semantic versioning for tags (e.g. `v7`, `v7.0.0`). Releases are automated via GitHub Actions: when a new version is prepared, a Git tag is created and a GitHub Release is published using the GitHub CLI with `--generate-notes` to auto-generate the changelog. (See [Release Process](#release-process) for details.)
+- **Deterministic and automated releases** – This repository follows semantic versioning for tags (e.g. `v7`, `v7.0.0`). Releases are automated via GitHub Actions: when a new version is prepared, a Git tag is created and a GitHub Release is published using the GitHub CLI with `--generate-notes` to auto-generate the changelog. Dependencies are locked via `packages.lock.json`, and CI restores in locked mode for repeatable builds. (See [Release Process](#release-process) for details.)
 
 ### Prerequisites
 
-The CLI runs on Windows, macOS, and Linux. Regardless of platform, ensure the following are available:
+The CLI runs on Windows, macOS, and Linux. Regardless of platform, ensure the following is available:
 
 - `git`
-- (Optional) Go toolchain – required only if rebuilding `git-hours` from source
-- Network access to the `git-hours` source repository
 
 ## Inputs
 

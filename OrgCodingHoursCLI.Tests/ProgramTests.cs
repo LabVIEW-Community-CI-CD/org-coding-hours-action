@@ -38,68 +38,18 @@ public class ProgramTests
     }
 
     [Fact]
-    public void EnsureGitHours_ThrowsWhenGoMissing()
+    public void EnsureGitHours_ThrowsWhenMissingGitHours()
     {
         var originalExists = Program.CommandExistsFunc;
-        var originalRun = Program.RunCommandAction;
         Program.CommandExistsFunc = _ => false;
-        Program.RunCommandAction = (_,__,___) => { };
         try
         {
-            Assert.ThrowsAny<Exception>(() =>
-            {
-                var mi = typeof(Program).GetMethod("EnsureGitHours", System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
-                mi!.Invoke(null, null);
-            });
+            var mi = typeof(Program).GetMethod("EnsureGitHours", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            Assert.ThrowsAny<Exception>(() => mi!.Invoke(null, null));
         }
         finally
         {
             Program.CommandExistsFunc = originalExists;
-            Program.RunCommandAction = originalRun;
-        }
-    }
-
-    [Fact]
-    public void EnsureGitHours_BuildsSpecifiedVersion()
-    {
-        var calls = new List<string>();
-        var originalExists = Program.CommandExistsFunc;
-        var originalRun = Program.RunCommandAction;
-        var builtFlag = false;
-        Program.CommandExistsFunc = cmd =>
-        {
-            if (cmd == "git-hours") return builtFlag;
-            return true;
-        };
-        Program.RunCommandAction = (file,args,workDir) =>
-        {
-            calls.Add($"{file} {args}");
-            if (file=="git" && args.StartsWith("clone"))
-            {
-                var dir = args.Split(' ')[^1].Trim('"');
-                Directory.CreateDirectory(dir);
-            }
-            if (file=="go")
-            {
-                var built = Path.Combine(workDir!, "git-hours");
-                File.WriteAllText(built, string.Empty);
-                builtFlag = true;
-            }
-        };
-        Environment.SetEnvironmentVariable("GIT_HOURS_VERSION", "v9.9.9");
-        try
-        {
-            var mi = typeof(Program).GetMethod("EnsureGitHours", System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
-            mi!.Invoke(null, null);
-            Assert.Contains(calls, c => c.Contains("git clone"));
-            Assert.Contains(calls, c => c.Contains("git checkout v9.9.9"));
-            Assert.Contains(calls, c => c.StartsWith("go build"));
-        }
-        finally
-        {
-            Program.CommandExistsFunc = originalExists;
-            Program.RunCommandAction = originalRun;
-            Environment.SetEnvironmentVariable("GIT_HOURS_VERSION", null);
         }
     }
 

@@ -19,9 +19,11 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '8.0.302'
+      - name: Restore
+        run: dotnet restore OrgCodingHoursCLI/OrgCodingHoursCLI.csproj --locked-mode
       - name: Pack CLI
-        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package
+        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package --no-restore
       - name: Execute action against sample repos
         uses: ./
         with:
@@ -35,13 +37,15 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '8.0.302'
+      - name: Restore
+        run: dotnet restore OrgCodingHoursCLI/OrgCodingHoursCLI.csproj --locked-mode
       - name: Publish CLI
-        run: dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release
+        run: dotnet publish OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release --no-restore
       - name: Run unit tests
-        run: dotnet test OrgCodingHoursCLI.Tests/OrgCodingHoursCLI.Tests.csproj
+        run: dotnet test OrgCodingHoursCLI.Tests/OrgCodingHoursCLI.Tests.csproj --no-restore
       - name: Pack CLI
-        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package
+        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package --no-restore
       - name: Cache PowerShell modules
         uses: actions/cache@v4
         with:

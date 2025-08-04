@@ -23,6 +23,16 @@ if (-not $script:cliExePath) {
 
 if ($IsWindows) { $script:cliExePath += ".exe" }
 
+# Ensure git-hours is available for tests
+if (-not (Get-Command git-hours -ErrorAction SilentlyContinue)) {
+    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+    git clone --depth 1 --branch ($env:GIT_HOURS_VERSION ?? 'v0.1.2') https://github.com/trinhminhtriet/git-hours $tempDir | Out-Null
+    pushd $tempDir
+    go build -o git-hours | Out-Null
+    popd
+    $env:PATH = "$tempDir$([IO.Path]::PathSeparator)$env:PATH"
+}
+
 Describe "OrgCodingHoursCLI" {
 
     BeforeEach {

@@ -21,9 +21,11 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '8.0.302'
+      - name: Restore
+        run: dotnet restore OrgCodingHoursCLI/OrgCodingHoursCLI.csproj --locked-mode
       - name: Pack CLI
-        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package -p:PackageVersion=${{ needs.build_cli.outputs.cli_version }}
+        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package -p:PackageVersion=${{ needs.build_cli.outputs.cli_version }} --no-restore
       - name: Publish package
         run: dotnet nuget push package/*.nupkg --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --api-key ${{ secrets.GITHUB_TOKEN }}
 

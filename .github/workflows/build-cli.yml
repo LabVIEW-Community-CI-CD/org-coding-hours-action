@@ -17,18 +17,18 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '8.0.302'
       - name: Extract version
         id: version
         run: echo "cli_version=$(grep -oP '(?<=<Version>).*?(?=</Version>)' version.props)" >> $GITHUB_OUTPUT
       - name: Restore
-        run: dotnet restore OrgCodingHoursCLI/OrgCodingHoursCLI.csproj
+        run: dotnet restore OrgCodingHoursCLI/OrgCodingHoursCLI.csproj --locked-mode
       - name: Build
         run: dotnet build OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release --no-restore
       - name: Run unit tests
-        run: dotnet test OrgCodingHoursCLI.Tests/OrgCodingHoursCLI.Tests.csproj
+        run: dotnet test OrgCodingHoursCLI.Tests/OrgCodingHoursCLI.Tests.csproj --no-restore
       - name: Pack CLI
-        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package -p:PackageVersion=${{ steps.version.outputs.cli_version }}
+        run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package -p:PackageVersion=${{ steps.version.outputs.cli_version }} --no-restore
       - name: Upload CLI artifact
         uses: actions/upload-artifact@v4
         with:
