@@ -33,4 +33,4 @@ runs:
     METRICS_BRANCH: ${{ inputs.metrics_branch }}
     PAGES_BRANCH: ${{ inputs.pages_branch }}
     GIT_HOURS_VERSION: ${{ inputs.git_hours_version }}
-    GITHUB_TOKEN: ${{ github.token }}
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
