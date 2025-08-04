@@ -29,7 +29,7 @@ jobs:
       - name: Pack CLI
         run: dotnet pack OrgCodingHoursCLI/OrgCodingHoursCLI.csproj -c Release -o package -p:PackageVersion=${{ needs.build_cli.outputs.cli_version }} --no-restore
       - name: Publish package
-        run: dotnet nuget push package/*.nupkg --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --api-key ${{ secrets.GITHUB_TOKEN }}
+        run: dotnet nuget push package/*.nupkg --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json --api-key ${{ secrets.GITHUB_TOKEN }} --skip-duplicate
 
   docker:
     needs: build_cli
