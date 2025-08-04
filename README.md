@@ -31,7 +31,7 @@ This action supports the following inputs:
 |------------------|--------------|---------------|-----------------|
 | `repos`          | **Yes**      | *(none)*      | List of repositories to process, in `owner/repo` format. Separate multiple entries with spaces or newlines. Supports wildcards (e.g. `my-org/*` for all repositories in an organization). **Each repository listed will be cloned and analyzed**. |
 | `window_start`   | No           | *(none)*      | Optional start date (`YYYY-MM-DD`) for the reporting window. Commits before this date will be ignored. If not set, the default is effectively “30 days ago” (as determined by the `git-hours` tool). Use this to limit the metrics to a recent timeframe (e.g. quarterly reports). |
-| `metrics_branch` | No           | `metrics`     | Name of the branch where JSON report snapshots should be committed. If provided, the action will commit the contents of the `reports/` directory to this branch. If this branch doesn’t exist, it will be created. *(Tip: use a dedicated branch like `metrics` to keep data separate from code.)* |
+| `metrics_branch` | No           | *(none)*      | Optional branch where JSON report snapshots should be committed. Requires `github_token` and a GitHub Actions context to push. If provided, the action will commit the contents of the `reports/` directory to this branch and create it if needed. *(Tip: use a dedicated branch like `metrics` to keep data separate from code.)* |
 | `git_hours_version` | No       | `v0.1.2`      | Version tag of the **git-hours** CLI to use. By default, a known stable version is included. You can override this to use a specific release of `git-hours`. |
 
 > **Note:** All inputs are strings.
