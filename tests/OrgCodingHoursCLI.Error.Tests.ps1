@@ -22,21 +22,42 @@ if (-not $script:cliExePath) {
 
 if ($IsWindows) { $script:cliExePath += ".exe" }
 
-$script:gitHoursPath = $null
-# Ensure git-hours exists for tests
-if (-not (Get-Command git-hours -ErrorAction SilentlyContinue)) {
-    $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
-    git clone --depth 1 --branch ($env:GIT_HOURS_VERSION ?? 'v0.1.2') https://github.com/trinhminhtriet/git-hours $tempDir | Out-Null
-    pushd $tempDir
-    go build -o git-hours | Out-Null
-    popd
-    $script:gitHoursPath = $tempDir
-    $env:PATH = "$tempDir$([IO.Path]::PathSeparator)$env:PATH"
-}
-
-$originalPath = "$env:PATH:/usr/local/go/bin:/usr/bin:/bin"
-
 Describe "OrgCodingHoursCLI Error Handling" {
+
+    BeforeAll {
+        # Provide a lightweight git-hours stub for tests
+        $gitHoursDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
+        New-Item -ItemType Directory -Path $gitHoursDir | Out-Null
+        if ($IsWindows) {
+            $gitHoursFile = Join-Path $gitHoursDir 'git-hours.cmd'
+            $scriptContent = @"
+@echo off
+set args=%*
+echo %args% | find "2999-01-01" >nul
+if %errorlevel%==0 (
+  echo {"total":{"hours":0,"commits":0}}
+) else (
+  echo {"alice":{"hours":1,"commits":1},"total":{"hours":1,"commits":1}}
+)
+"@
+            Set-Content -Path $gitHoursFile -Value $scriptContent -NoNewline
+        } else {
+            $gitHoursFile = Join-Path $gitHoursDir 'git-hours'
+            $scriptContent = @'
+#!/bin/sh
+if echo "$@" | grep -q "2999-01-01"; then
+  echo '{"total":{"hours":0,"commits":0}}'
+else
+  echo '{"alice":{"hours":1,"commits":1},"total":{"hours":1,"commits":1}}'
+fi
+'@
+            Set-Content -Path $gitHoursFile -Value $scriptContent -NoNewline
+            chmod +x $gitHoursFile
+        }
+        $env:PATH = "$gitHoursDir$([IO.Path]::PathSeparator)$env:PATH"
+        $env:GIT_TERMINAL_PROMPT = '0'
+        Set-Variable -Name originalPath -Value $env:PATH -Scope Script
+    }
 
     BeforeEach {
         # Ensure no required env vars are set and no leftover output
@@ -81,12 +102,20 @@ Describe "OrgCodingHoursCLI Error Handling" {
         Set-Content -Path $scriptPath -Value "#!/bin/sh
 echo fail >&2
 exit 1" -NoNewline
-        chmod +x $scriptPath
+        if (-not $IsWindows) { chmod +x $scriptPath }
         $env:PATH = "$fakeDir$(if($IsWindows){';'}else{':'})$env:PATH"
-        $env:REPOS = "ni/labview-icon-editor"
+        $env:REPOS = "octocat/Hello-World"
         $result = (& $cliExePath 2>&1) -join "`n"
         $LASTEXITCODE | Should -Not -Be 0
         $result | Should -Match "git-hours"
         Remove-Item -Recurse -Force $fakeDir
+    }
+
+    It "handles repository names with special characters safely" {
+        $env:REPOS = "octocat/invalid repo; touch should_not_exist"
+        $result = (& $cliExePath 2>&1) -join "`n"
+        $LASTEXITCODE | Should -Not -Be 0
+        $result | Should -Match "clone"
+        Test-Path "should_not_exist" | Should -Be $false
     }
 }

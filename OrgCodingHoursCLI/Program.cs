@@ -23,8 +23,6 @@ class Program
     {
         try
         {
-            EnsureGitHours();
-
             // Read required environment variables
             string reposEnv = Environment.GetEnvironmentVariable("REPOS") ?? "";
             string windowStart = Environment.GetEnvironmentVariable("WINDOW_START") ?? "";
@@ -34,6 +32,8 @@ class Program
             string[] repos = reposEnv.Split(new char[] { ' ', '\r', '\n', '\t' }, StringSplitOptions.RemoveEmptyEntries);
             if (repos.Length == 0)
                 throw new Exception("REPOS env var must list repositories to process");
+
+            EnsureGitHours();
 
             // Prepare a dictionary to hold results for each repo
             var resultsByRepo = new Dictionary<string, Dictionary<string, Stats>>();
@@ -130,7 +130,7 @@ class Program
         try
         {
             // Clone the repository (quietly, to fetch full history without verbose output)
-            RunCommand("git", $"clone --quiet {url} \"{cloneDir}\"");
+            RunCommand("git", $"clone --quiet \"{url}\" \"{cloneDir}\"");
 
             // Build git-hours command (include -since if a start date is provided)
             string args = "";
